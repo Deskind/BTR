@@ -31,7 +31,6 @@ public class Endpoint {
     
     //FLAG
     private boolean subscribedOnTransactionUpdates = false;
-    public static boolean isPayoutOk = false;
     
     public Trader trader;
     
@@ -186,10 +185,8 @@ public class Endpoint {
                             if(contractInfo.getContractId() == contractId){
                                 if(amount > 0){
                                     contractInfo.setResult("+");
-                                    System.out.println("Test message => we take PROFIT");
                                 }else{
                                     contractInfo.setResult("-");
-                                    System.out.println("Test message => we take LOSS");
                                 }
                                 //save to db
                                 HibernateUtil.saveContractInfo(contractInfo);
@@ -208,7 +205,7 @@ public class Endpoint {
             }
             
             case "proposal": {
-                processProposal(message, parser);
+//                processProposal(message, parser);
                 return;
             }
             
@@ -227,19 +224,17 @@ public class Endpoint {
         }
     }
 
-    private void processProposal(String message, JsonParser parser) {
-        float askPrice = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("ask_price").getAsFloat();
-        float payout = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("payout").getAsFloat();
-        
-        float binaryProposedPayout = (payout-askPrice)*100/askPrice;
-        
-        System.out.println("BINARY PROPOSED PAYOUT IS = > " + binaryProposedPayout);
-        
-        if(binaryProposedPayout > AppServlet.minimalPayout){
-            isPayoutOk = true;
-        }else{
-            isPayoutOk = false;
-        }
-    }
+//    private void processProposal(String message, JsonParser parser) {
+//        float askPrice = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("ask_price").getAsFloat();
+//        float payout = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("payout").getAsFloat();
+//        
+//        float binaryProposedPayout = (payout-askPrice)*100/askPrice;
+//               
+//        if(binaryProposedPayout > AppServlet.minimalPayout){
+//            isPayoutOk = true;
+//        }else{
+//            isPayoutOk = false;
+//        }
+//    }
     
 }

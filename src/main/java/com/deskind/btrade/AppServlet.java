@@ -10,11 +10,14 @@ import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.utils.Endpoint;
 import static com.deskind.btrade.utils.Endpoint.numberOfBoughtContracts;
 import com.deskind.btrade.utils.HibernateUtil;
+import com.deskind.btrade.utils.PayoutInterestEndpoint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.text.ParseException;
@@ -32,6 +35,9 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.websocket.ContainerProvider;
+import javax.websocket.DeploymentException;
+import javax.websocket.Session;
 
 
 @WebServlet(name = "AppServlet", urlPatterns = {"/AppServlet", "/app"})
@@ -40,8 +46,8 @@ public class AppServlet extends HttpServlet {
     private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
     //counters
-    public static int numberOfRequestsToBuyContract;
-    public static int sendedSignalsCounter = 1;
+    volatile public static int numberOfRequestsToBuyContract;
+    volatile public static int sendedSignalsCounter = 1;
     
     //colections
     public static List<Trader> traders = new ArrayList<>();
@@ -142,35 +148,97 @@ public class AppServlet extends HttpServlet {
             
             //terminal signal process
             case "go":{
-                String type = req.getParameter("type");
-                String duration = req.getParameter("duration");
-                String durationUnit = req.getParameter("duration_unit");
-                String symbol = req.getParameter("symbol");
-                String tsName = req.getParameter("tsName");
+                System.out.println("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
                 
-                System.out.println("---"+sendedSignalsCounter+"---POLUCHEN SIGNAL" + new Date().toString() + "TYPE => " + type + "SYMBOL => " + symbol + "TS_NAME => " + tsName);
+//                http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
+////              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1 
+////              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=3&duration_unit=m&symbol=frxEURUSD&tsName=ttt
+////              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_50&tsName=t2
+////              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_33&tsName=t1
                 
-                for(Trader trader : traders){
-                    TradingSystem tradingSystem = trader.getTsByName(tsName);
-                    if(tradingSystem != null && tradingSystem.getSession().isOpen()){
-                        tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
-                        break;
-                    }
-                }
+                final String type = req.getParameter("type");
+                final String duration = req.getParameter("duration");
+                final String durationUnit = req.getParameter("duration_unit");
+                final String symbol = req.getParameter("symbol");
+                final String tsName = req.getParameter("tsName");
                 
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, "Interrupted at time of waiting PAYOUT RESPONSE", ex);
-                }
+                Thread t = new Thread(new Runnable() {
+                    
+                    @Override
+                    public void run() {
+                        boolean isPayoutOk = false;
+                        int numberOfProposalRequests = 5;
+                        Session session = null;
+                        PayoutInterestEndpoint payoutEndpoint = null;
+                        String[] appIDs = null;
+                        
+                        int threadId = generateThreadId();
+                        appIDs = getAppIDs();
+                        payoutEndpoint = new PayoutInterestEndpoint(type, duration, durationUnit, symbol, threadId);
+                        
+                        //log
+                        System.out.println("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
                 
-//              http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
-//              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1 
-//              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=3&duration_unit=m&symbol=frxEURUSD&tsName=ttt
-//              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_50&tsName=t2
-//              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_33&tsName=t1
+                        //send request to get payout interest
+//                        for(Trader trader : traders){
+//                            TradingSystem tradingSystem = trader.getTsByName(tsName);
+//                            if(tradingSystem != null && tradingSystem.getSession().isOpen()){
+//                                try {
+//                                    tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
+//                                } catch (IOException ex) {
+//                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+//                                }
+//                                break;
+//                            }
+//                        }
+                        
+                        
+                        
+                        try {
+                            session = ContainerProvider.getWebSocketContainer().connectToServer(payoutEndpoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIDs[0]));
+                        } catch (URISyntaxException ex) {
+                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (DeploymentException ex) {
+                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        
+                        if(payoutEndpoint.getPayout() > minimalPayout){
+                            isPayoutOk = true;
+                        }else{
+                            for(int i = 0 ; i < 10; i++){
+                                try {
+//                                    session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
+                                    session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+threadId+"}}");
+                                } catch (IOException ex) {
+                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+
+                                try {
+                                    Thread.currentThread().sleep(2000);
+                                } catch (InterruptedException ex) {
+                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+
+                                float currentPayoutInterest = payoutEndpoint.getPayout();
+
+                                if(currentPayoutInterest > minimalPayout){
+                                    isPayoutOk = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        
                 
-                if(Endpoint.isPayoutOk){
+                if(isPayoutOk){
                     for(Trader trader : traders){
                         TradingSystem tradingSystem = trader.getTsByName(tsName);
                         if(tradingSystem != null && tradingSystem.isActive()){
@@ -189,8 +257,12 @@ public class AppServlet extends HttpServlet {
                             contractInfo.setTs(tradingSystem.getName());
                             trader.contractsInfoList.add(contractInfo);
 
-                            //sending......
-                            tradingSystem.getSession().getBasicRemote().sendText("{ \"buy\": \"1\",  \"price\": 1000,  \"parameters\":{  \"amount\":"+tradingSystem.getLot()+",  \"basis\":\"stake\",  \"contract_type\":\""+type+"\",  \"currency\":\"USD\", \"duration\":"+duration+",  \"duration_unit\":\""+durationUnit+"\", \"symbol\":\""+symbol+"\"}, \"passthrough\":{\"iternalId\":"+contractInfoIternalCounter+"}}");
+                            try {
+                                //sending......
+                                tradingSystem.getSession().getBasicRemote().sendText("{ \"buy\": \"1\",  \"price\": 1000,  \"parameters\":{  \"amount\":"+tradingSystem.getLot()+",  \"basis\":\"stake\",  \"contract_type\":\""+type+"\",  \"currency\":\"USD\", \"duration\":"+duration+",  \"duration_unit\":\""+durationUnit+"\", \"symbol\":\""+symbol+"\"}, \"passthrough\":{\"iternalId\":"+contractInfoIternalCounter+"}}");
+                            } catch (IOException ex) {
+                                Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                             numberOfRequestsToBuyContract++;
 
                             //this integer passed as unique identifier
@@ -198,11 +270,12 @@ public class AppServlet extends HttpServlet {
                         }
                     }
                     
-                    System.out.println("---"+sendedSignalsCounter+"---KOLICHESTVO ZAPROSOV NA POKUPKY => " + numberOfRequestsToBuyContract);
+                    System.out.println("---"+threadId+"---KOLICHESTVO ZAPROSOV NA POKUPKY => " + numberOfRequestsToBuyContract);
                     
                     //reset counter
                     numberOfRequestsToBuyContract = 0;
                     
+                    //this timer needs refactoring
                     timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
@@ -212,16 +285,19 @@ public class AppServlet extends HttpServlet {
                             //reset counters
                             numberOfBoughtContracts = 0;
                         }
-                    }, 5000);
-                }else{
+                        }, 5000);
+                    }else{
                     
                 }
                 
-                //go back on main page
-                resp.sendRedirect("/BTR");
-                
                 //increment signals counter
-                sendedSignalsCounter++;
+                    }
+                });
+                
+                t.start();
+                
+//                resp.sendRedirect("/BTR");
+                
                 return;
             }
             
@@ -346,6 +422,14 @@ public class AppServlet extends HttpServlet {
         } catch (IOException e) {
             return false;
         }
+    }
+    
+    private static synchronized int generateThreadId(){
+        return sendedSignalsCounter++;
+    }
+    
+    private static String[] getAppIDs(){
+        return appIDs;
     }
     
     @Override
