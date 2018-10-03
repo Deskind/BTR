@@ -8,6 +8,7 @@ import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.utils.Endpoint;
+import static com.deskind.btrade.utils.Endpoint.numberOfBoughtContracts;
 import com.deskind.btrade.utils.HibernateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -38,14 +39,20 @@ public class AppServlet extends HttpServlet {
     //date formatter
     private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
+    //counters
+    public static int numberOfRequestsToBuyContract;
+    public static int sendedSignalsCounter = 1;
+    
     //colections
     public static List<Trader> traders = new ArrayList<>();
     
     //app IDs (will be initialized at start trading process
     public static String [] appIDs;
+    public static int minimalPayout = 65;//65 is default value
     
     //timers
     public static Timer aliveTimer;
+    public static Timer timer;
     
     public static TimerTask stayAliveTimerTask;
     
@@ -141,42 +148,80 @@ public class AppServlet extends HttpServlet {
                 String symbol = req.getParameter("symbol");
                 String tsName = req.getParameter("tsName");
                 
+                System.out.println("---"+sendedSignalsCounter+"---POLUCHEN SIGNAL" + new Date().toString() + "TYPE => " + type + "SYMBOL => " + symbol + "TS_NAME => " + tsName);
+                
+                for(Trader trader : traders){
+                    TradingSystem tradingSystem = trader.getTsByName(tsName);
+                    if(tradingSystem != null && tradingSystem.getSession().isOpen()){
+                        tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
+                        break;
+                    }
+                }
+                
+                try {
+                    Thread.sleep(300);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, "Interrupted at time of waiting PAYOUT RESPONSE", ex);
+                }
                 
 //              http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
 //              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1 
+//              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=3&duration_unit=m&symbol=frxEURUSD&tsName=ttt
 //              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_50&tsName=t2
 //              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_33&tsName=t1
+                
+                if(Endpoint.isPayoutOk){
+                    for(Trader trader : traders){
+                        TradingSystem tradingSystem = trader.getTsByName(tsName);
+                        if(tradingSystem != null && tradingSystem.isActive()){
+                            //object will store info about contract
+                            ContractInfo contractInfo = new ContractInfo(contractInfoIternalCounter);
 
-                for(Trader trader : traders){
-                    TradingSystem tradingSystem = trader.getTsByName(tsName);
-                    if(tradingSystem != null && tradingSystem.isActive()){
-                        
-                        //object will store info about contract
-                        ContractInfo contractInfo = new ContractInfo(contractInfoIternalCounter);
-                        
-                        //wtire send time
-                        try {
-                            Date sendTime = dateFormatter.parse(dateFormatter.format(new Date(System.currentTimeMillis())));
-                            contractInfo.setSendTime(sendTime);
-                        } catch (ParseException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                            //wtire send time
+                            try {
+                                Date sendTime = dateFormatter.parse(dateFormatter.format(new Date(System.currentTimeMillis())));
+                                contractInfo.setSendTime(sendTime);
+                            } catch (ParseException ex) {
+                                Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+
+                            //write ts name
+                            contractInfo.setTs(tradingSystem.getName());
+                            trader.contractsInfoList.add(contractInfo);
+
+                            //sending......
+                            tradingSystem.getSession().getBasicRemote().sendText("{ \"buy\": \"1\",  \"price\": 1000,  \"parameters\":{  \"amount\":"+tradingSystem.getLot()+",  \"basis\":\"stake\",  \"contract_type\":\""+type+"\",  \"currency\":\"USD\", \"duration\":"+duration+",  \"duration_unit\":\""+durationUnit+"\", \"symbol\":\""+symbol+"\"}, \"passthrough\":{\"iternalId\":"+contractInfoIternalCounter+"}}");
+                            numberOfRequestsToBuyContract++;
+
+                            //this integer passed as unique identifier
+                            contractInfoIternalCounter++;
                         }
-                        
-                        //write ts name
-                        contractInfo.setTs(tradingSystem.getName());
-                        trader.contractsInfoList.add(contractInfo);
-                        
-                        //sending......
-                        tradingSystem.getSession().getBasicRemote().sendText("{ \"buy\": \"1\",  \"price\": 1000,  \"parameters\":{  \"amount\":"+tradingSystem.getLot()+",  \"basis\":\"stake\",  \"contract_type\":\""+type+"\",  \"currency\":\"USD\", \"duration\":"+duration+",  \"duration_unit\":\""+durationUnit+"\", \"symbol\":\""+symbol+"\"}, \"passthrough\":{\"iternalId\":"+contractInfoIternalCounter+"}}");
-                        
-                        //this integer passed as unique identifier
-                        contractInfoIternalCounter++;
                     }
+                    
+                    System.out.println("---"+sendedSignalsCounter+"---KOLICHESTVO ZAPROSOV NA POKUPKY => " + numberOfRequestsToBuyContract);
+                    
+                    //reset counter
+                    numberOfRequestsToBuyContract = 0;
+                    
+                    timer = new Timer();
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            System.out.println("KOLICHESTVO KUPLENIX KONTRACTOV = > " + numberOfBoughtContracts);
+                            
+                            //reset counters
+                            numberOfBoughtContracts = 0;
+                        }
+                    }, 5000);
+                }else{
+                    
                 }
-               
+                
                 //go back on main page
                 resp.sendRedirect("/BTR");
                 
+                //increment signals counter
+                sendedSignalsCounter++;
                 return;
             }
             
@@ -194,8 +239,9 @@ public class AppServlet extends HttpServlet {
                 return;
             }
             
-            case "stop": {
-                
+            case "setMinimalPayout": {
+                minimalPayout = Integer.valueOf(req.getParameter("payoutValue"));
+                System.out.println("+++Novoe znachenie vbIplaty = > " + minimalPayout);
                 return;
             }
             

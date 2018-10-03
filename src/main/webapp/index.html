@@ -28,13 +28,23 @@
         AppId: 
         <select id="app_id">
             <option value=""></option>
-            <option value="12985-12984-12840">12985-12984-12840</option>
+            <option value="12985-12984-12840">12985-12984-12840(Dima)</option>
+            <option value="15074-15074-15074">15074-15074-15074(Ivan)</option>
+            <option value="12888-12887-12886">12888-12887-12886(Lesha)</option>
         </select>
         <input type="button" value="START" onclick="startTradingProcess()" />
         <input type="button" value="STOP" onclick="stopTradingProcess()" /><br><br>
         
         <input type="button" value="SortTraders" onclick="sortTraders()" />
         <input type="button" value="allTraders" onclick="printAllTraders()" />
-        <div id="result"></div><br><br>         
+        <br><br>
+        <div>
+            <label>Размер выплаты(может быть установлен без остановки сервера)</label>
+            <input id="payoutInput" style="width: 150px" type="number" min="1" max="100" placeholder="По умолчанию: 65%"/>
+            <input id="setPayoutButton" type="button" value="Установить" onclick="setMinimalPayout(document.getElementById('payoutInput').value)" />
+        </div>
+        <div>
+            <h3 id="result"></h3>
+        </div><br><br>         
     </body>
 </html>

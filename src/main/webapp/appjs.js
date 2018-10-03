@@ -513,6 +513,18 @@ function setBet(token, value){
         });
 }
 
+function setMinimalPayout(newPayoutValue){
+    $.ajax({
+            cache: false,
+            url: 'AppServlet?action=setMinimalPayout&payoutValue='+newPayoutValue,
+            success: function(data) {
+              window.alert("Новый размер выплаты: " + newPayoutValue);
+              document.getElementById("payoutInput").value = newPayoutValue;
+            }
+        });
+    
+}
+
 function sortTraders(){
     console.log("+++Sort traders call...");
     $.ajax({

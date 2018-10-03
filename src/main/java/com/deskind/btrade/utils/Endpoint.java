@@ -2,6 +2,7 @@
 package com.deskind.btrade.utils;
 
 import com.deskind.btrade.AppServlet;
+import static com.deskind.btrade.AppServlet.sendedSignalsCounter;
 import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.google.gson.JsonElement;
@@ -25,8 +26,12 @@ public class Endpoint {
     //Date formatter
 //    private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
+    //COUNTERS
+    public static int numberOfBoughtContracts;
+    
     //FLAG
     private boolean subscribedOnTransactionUpdates = false;
+    public static boolean isPayoutOk = false;
     
     public Trader trader;
     
@@ -48,7 +53,9 @@ public class Endpoint {
         
         switch(messageType){
             case "authorize": {
-                if(!message.contains("error")){
+                JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
+                
+                if(errorElement == null){//if no error element in server responce
                     trader.authorized = true;
                 }else{
                     trader.authorized = false;
@@ -57,14 +64,22 @@ public class Endpoint {
             }
             
             case "balance": {
-                float balance = parser.parse(message).getAsJsonObject().get("balance").getAsJsonObject().get("balance").getAsFloat();
-                trader.setBalance(balance);
+                JsonElement balanceElement = parser.parse(message).getAsJsonObject().get("balance");
+                
+                if(balanceElement != null){
+                    trader.setBalance(balanceElement.getAsJsonObject().get("balance").getAsFloat());
+                }
                 return;
             }
             
             
             case "buy": {
-                if(!message.contains("error")){
+                
+                JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
+                
+                if(errorElement == null){//if no error element in server responce
+                    
+                    numberOfBoughtContracts++;
                     
                     //subscribe on transaction updates at time of first contract buy
                     if(!subscribedOnTransactionUpdates){
@@ -192,6 +207,11 @@ public class Endpoint {
                 return;
             }
             
+            case "proposal": {
+                processProposal(message, parser);
+                return;
+            }
+            
             
         }
     }
@@ -204,6 +224,21 @@ public class Endpoint {
             session.close();
         } catch (IOException ex) {
             Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void processProposal(String message, JsonParser parser) {
+        float askPrice = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("ask_price").getAsFloat();
+        float payout = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("payout").getAsFloat();
+        
+        float binaryProposedPayout = (payout-askPrice)*100/askPrice;
+        
+        System.out.println("BINARY PROPOSED PAYOUT IS = > " + binaryProposedPayout);
+        
+        if(binaryProposedPayout > AppServlet.minimalPayout){
+            isPayoutOk = true;
+        }else{
+            isPayoutOk = false;
         }
     }
     
