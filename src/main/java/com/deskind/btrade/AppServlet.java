@@ -25,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -48,6 +49,8 @@ public class AppServlet extends HttpServlet {
      * Default value if 5 seconds
      */
     public static int timeToWaitBetterProposal = 5;
+    
+    private static boolean logTimerTaskInRun = false;
     
     //date formatter
     public static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -75,6 +78,9 @@ public class AppServlet extends HttpServlet {
     
     //flags
     public boolean firstRun = true;
+    
+    //map with logs
+    private static HashMap<Integer, ArrayList<String>> logs = new HashMap<Integer, ArrayList<String>>();
     
    //Main
     @Override
@@ -157,7 +163,7 @@ public class AppServlet extends HttpServlet {
             case "go":{
                 
                 
-                System.out.println("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
+//                System.out.println("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
                 
 //                http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
 ////              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1 
@@ -179,8 +185,14 @@ public class AppServlet extends HttpServlet {
                         int threadId = generateThreadId();
                         int numberOfSubscriptionsOnProposal = 0;
                         
+                        //add new Entry to 'logs' HashMap
+                        logs.put(threadId, new ArrayList<String>());
+                        logs.get(threadId).add("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
+                        logs.get(threadId).add("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
+                        logs.get(threadId).add("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+                        
                         //log message at time of receiveing signal
-                        System.out.println("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
+//                        System.out.println("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
                         
                         //iterate over traders to find trading systems and subscribe on "Price proposal"
                         for(Trader trader : traders){                            
@@ -221,7 +233,9 @@ public class AppServlet extends HttpServlet {
                         }
                         
                         //log message about number subscribed traders
-                        System.out.println("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+//                        System.out.println("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+                        
+                        
                     }
                         
                 });
