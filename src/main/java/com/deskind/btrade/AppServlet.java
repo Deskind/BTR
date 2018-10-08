@@ -8,11 +8,11 @@ import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.utils.Endpoint;
-import static com.deskind.btrade.utils.Endpoint.numberOfBoughtContracts;
 import com.deskind.btrade.utils.HibernateUtil;
 import com.deskind.btrade.utils.PayoutInterestEndpoint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -42,12 +42,19 @@ import javax.websocket.Session;
 
 @WebServlet(name = "AppServlet", urlPatterns = {"/AppServlet", "/app"})
 public class AppServlet extends HttpServlet {
+    /**
+     * In seconds
+     * Variable indicates how long to wait better proposal from binary service after signal was received
+     * Default value if 5 seconds
+     */
+    public static int timeToWaitBetterProposal = 5;
+    
     //date formatter
-    private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
     //counters
-    volatile public static int numberOfRequestsToBuyContract;
     volatile public static int sendedSignalsCounter = 1;
+    public static int numberOfBoughtContracts;
     
     //colections
     public static List<Trader> traders = new ArrayList<>();
@@ -148,6 +155,8 @@ public class AppServlet extends HttpServlet {
             
             //terminal signal process
             case "go":{
+                
+                
                 System.out.println("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
                 
 //                http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
@@ -166,137 +175,60 @@ public class AppServlet extends HttpServlet {
                     
                     @Override
                     public void run() {
-                        boolean isPayoutOk = false;
-                        int numberOfProposalRequests = 5;
-                        Session session = null;
-                        PayoutInterestEndpoint payoutEndpoint = null;
-                        String[] appIDs = null;
-                        
+                        //variables
                         int threadId = generateThreadId();
-                        appIDs = getAppIDs();
-                        payoutEndpoint = new PayoutInterestEndpoint(type, duration, durationUnit, symbol, threadId);
+                        int numberOfSubscriptionsOnProposal = 0;
                         
-                        //log
+                        //log message at time of receiveing signal
                         System.out.println("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
-                
-                        //send request to get payout interest
-//                        for(Trader trader : traders){
-//                            TradingSystem tradingSystem = trader.getTsByName(tsName);
-//                            if(tradingSystem != null && tradingSystem.getSession().isOpen()){
-//                                try {
-//                                    tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
-//                                } catch (IOException ex) {
-//                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-//                                }
-//                                break;
-//                            }
-//                        }
                         
-                        
-                        
-                        try {
-                            session = ContainerProvider.getWebSocketContainer().connectToServer(payoutEndpoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIDs[0]));
-                        } catch (URISyntaxException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                        } catch (DeploymentException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                        } catch (IOException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-                        
-                        if(payoutEndpoint.getPayout() > minimalPayout){
-                            isPayoutOk = true;
-                        }else{
-                            for(int i = 0 ; i < 10; i++){
+                        //iterate over traders to find trading systems and subscribe on "Price proposal"
+                        for(Trader trader : traders){                            
+                            TradingSystem tradingSystem = trader.getTsByName(tsName);
+                            if(tradingSystem != null && tradingSystem.isActive()){
+                                //Outer json object
+                                JsonObject jsonToSend = new JsonObject();
+                                jsonToSend.addProperty("proposal", 1);
+                                jsonToSend.addProperty("subscribe", 1);
+                                jsonToSend.addProperty("amount", tradingSystem.getLot());
+                                jsonToSend.addProperty("basis", "stake");
+                                jsonToSend.addProperty("contract_type", type);
+                                jsonToSend.addProperty("currency", "USD");
+                                jsonToSend.addProperty("duration", duration);
+                                jsonToSend.addProperty("duration_unit", durationUnit);
+                                jsonToSend.addProperty("symbol", symbol);
+                                //inner passthrough json object
+                                JsonObject passthroughObject = new JsonObject();
+                                passthroughObject.addProperty("threadId", threadId);
+                                passthroughObject.addProperty("tsName", tsName);
+                                passthroughObject.addProperty("duration", duration);
+                                passthroughObject.addProperty("contractType", type);
+                                passthroughObject.addProperty("symbol", symbol);
+                                
+                                //adding inner object to outer
+                                jsonToSend.add("passthrough", passthroughObject);
+                                
+                                //sending............
                                 try {
-//                                    session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
-                                    session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+threadId+"}}");
+//                                    tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1, \"subscribe\":1, \"amount\": \""+tradingSystem.getLot()+"\",\"basis\": \"stake\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+threadId+", \"tsName\":\""+tsName+"\", \"duration\":"+duration+"}}");
+                                    tradingSystem.getSession().getBasicRemote().sendText(jsonToSend.toString());
+
                                 } catch (IOException ex) {
                                     Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
                                 }
-
-                                try {
-                                    Thread.currentThread().sleep(2000);
-                                } catch (InterruptedException ex) {
-                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-
-                                float currentPayoutInterest = payoutEndpoint.getPayout();
-
-                                if(currentPayoutInterest > minimalPayout){
-                                    isPayoutOk = true;
-                                    break;
-                                }
+                                numberOfSubscriptionsOnProposal++;
                             }
                         }
                         
+                        //log message about number subscribed traders
+                        System.out.println("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+                    }
                         
-                
-                if(isPayoutOk){
-                    for(Trader trader : traders){
-                        TradingSystem tradingSystem = trader.getTsByName(tsName);
-                        if(tradingSystem != null && tradingSystem.isActive()){
-                            //object will store info about contract
-                            ContractInfo contractInfo = new ContractInfo(contractInfoIternalCounter);
-
-                            //wtire send time
-                            try {
-                                Date sendTime = dateFormatter.parse(dateFormatter.format(new Date(System.currentTimeMillis())));
-                                contractInfo.setSendTime(sendTime);
-                            } catch (ParseException ex) {
-                                Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-
-                            //write ts name
-                            contractInfo.setTs(tradingSystem.getName());
-                            trader.contractsInfoList.add(contractInfo);
-
-                            try {
-                                //sending......
-                                tradingSystem.getSession().getBasicRemote().sendText("{ \"buy\": \"1\",  \"price\": 1000,  \"parameters\":{  \"amount\":"+tradingSystem.getLot()+",  \"basis\":\"stake\",  \"contract_type\":\""+type+"\",  \"currency\":\"USD\", \"duration\":"+duration+",  \"duration_unit\":\""+durationUnit+"\", \"symbol\":\""+symbol+"\"}, \"passthrough\":{\"iternalId\":"+contractInfoIternalCounter+"}}");
-                            } catch (IOException ex) {
-                                Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                            numberOfRequestsToBuyContract++;
-
-                            //this integer passed as unique identifier
-                            contractInfoIternalCounter++;
-                        }
-                    }
-                    
-                    System.out.println("---"+threadId+"---KOLICHESTVO ZAPROSOV NA POKUPKY => " + numberOfRequestsToBuyContract);
-                    
-                    //reset counter
-                    numberOfRequestsToBuyContract = 0;
-                    
-                    //this timer needs refactoring
-                    timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            System.out.println("KOLICHESTVO KUPLENIX KONTRACTOV = > " + numberOfBoughtContracts);
-                            
-                            //reset counters
-                            numberOfBoughtContracts = 0;
-                        }
-                        }, 5000);
-                    }else{
-                    
-                }
-                
-                //increment signals counter
-                    }
                 });
                 
                 t.start();
                 
-//                resp.sendRedirect("/BTR");
+                resp.sendRedirect("/BTR");
                 
                 return;
             }

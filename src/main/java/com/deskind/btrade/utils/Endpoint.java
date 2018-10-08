@@ -2,35 +2,48 @@
 package com.deskind.btrade.utils;
 
 import com.deskind.btrade.AppServlet;
+import static com.deskind.btrade.AppServlet.contractInfoIternalCounter;
+import static com.deskind.btrade.AppServlet.dateFormatter;
 import static com.deskind.btrade.AppServlet.sendedSignalsCounter;
 import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.awt.BorderLayout;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.websocket.ClientEndpoint;
+import javax.websocket.CloseReason;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
+import org.hibernate.mapping.Set;
 
 @ClientEndpoint
 public class Endpoint {
     
     //Date formatter
-//    private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
     //COUNTERS
-    public static int numberOfBoughtContracts;
+    
     
     //FLAG
     private boolean subscribedOnTransactionUpdates = false;
+    
+    //SUBSCRIPTIONS MAP
+    public HashSet<String> subscriptions = new HashSet<String>();
     
     public Trader trader;
     
@@ -45,7 +58,7 @@ public class Endpoint {
     }
     
     @OnMessage
-    public void onMessage(String message, Session session){
+    public void onMessage(String message, Session session) throws ParseException{
         //getting message type
         JsonParser parser = new JsonParser();
         String messageType = parser.parse(message).getAsJsonObject().get("msg_type").getAsString();
@@ -74,12 +87,29 @@ public class Endpoint {
             
             case "buy": {
                 
-                JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
+                ContractInfo contractInfo = null;
+                int contractInfoCollectionIndex = -1;
                 
-                if(errorElement == null){//if no error element in server responce
-                    
-                    numberOfBoughtContracts++;
-                    
+                JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
+                JsonObject buyObject = parser.parse(message).getAsJsonObject().get("buy").getAsJsonObject();
+                JsonObject passthroughObject = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject();
+                
+                int iternalId = passthroughObject.get("iternalId").getAsInt();
+                String streamId = passthroughObject.get("streamId").getAsString();
+                
+                subscriptions.remove(streamId);
+               
+                //find contract info in collection
+                for(int i = 0; i < trader.contractsInfoList.size();i++){
+                    ContractInfo ci = trader.contractsInfoList.get(i);
+                    if(ci.getIternalId() == iternalId){
+                        contractInfo = ci;
+                        contractInfoCollectionIndex = i;
+                        break;
+                    }
+                }
+                
+                if(errorElement == null){//if no error element in server responce                    
                     //subscribe on transaction updates at time of first contract buy
                     if(!subscribedOnTransactionUpdates){
                         try {
@@ -92,83 +122,56 @@ public class Endpoint {
                     }
                     
                     
-                    long responceTime = System.currentTimeMillis();
-                    int iternalId = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject().get("iternalId").getAsInt();
-                    JsonObject buyObject = parser.parse(message).getAsJsonObject().get("buy").getAsJsonObject();
-                    JsonObject parametersObject = parser.parse(message).getAsJsonObject().get("echo_req").getAsJsonObject().get("parameters").getAsJsonObject();
-                    
-                    for(ContractInfo contractInfo : trader.contractsInfoList){
-                        if(contractInfo.getIternalId() == iternalId){
-                            long startTime = buyObject.get("start_time").getAsLong();
-                            int expirationTime = parametersObject.get("duration").getAsInt();
-                            
-                            contractInfo.setTraderName(trader.getName());
-                            contractInfo.setTraderToken(trader.getToken());   
-                            
-
-                            try {
-                                
-                                //response time 
-                                SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                                Date responceDate = dateFormatter.parse(dateFormatter.format(new Date(responceTime)));
-                                contractInfo.setResponceTime(responceDate);
-                                
-                                //buy time
-                                Date buyTime = dateFormatter.parse(dateFormatter.format(new Date(buyObject.get("purchase_time").getAsLong()*1000)));
-                                contractInfo.setBuyTime(buyTime);
-                                
-                                //start time
-                                Date start = dateFormatter.parse(dateFormatter.format(new Date(startTime * 1000)));
-                                contractInfo.setStartTime(start);
-                                
-                                //end time 
-                                Date end = dateFormatter.parse(dateFormatter.format(new Date((startTime+expirationTime*60)*1000)));
-                                contractInfo.setEndTime(end);
-                            } catch (ParseException ex) {
-                                Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-
-                            
-                            contractInfo.setExpirationTime(expirationTime);
-                            
-                            contractInfo.setBuyPrice(buyObject.get("buy_price").getAsFloat());
-                            contractInfo.setPayout(buyObject.get("payout").getAsFloat());
-                            contractInfo.setAppMarkupsPersentage(parametersObject.get("app_markup_percentage").getAsFloat());
-                            contractInfo.setType(parametersObject.get("contract_type").getAsString());
-                            contractInfo.setSymbol(parametersObject.get("symbol").getAsString());
-                            contractInfo.setContractId(buyObject.get("contract_id").getAsLong());
-                            contractInfo.setTransactionId(buyObject.get("transaction_id").getAsLong());
-                        }
+                    if(contractInfo != null){
+                        //response time 
+                        long responceTime = System.currentTimeMillis();
+                        Date responceDate = dateFormatter.parse(dateFormatter.format(new Date(responceTime)));
+                        contractInfo.setResponceTime(responceDate);
+                        
+                        //start time
+                        long startTime = buyObject.get("start_time").getAsLong();
+                        Date start = dateFormatter.parse(dateFormatter.format(new Date(startTime * 1000)));
+                        contractInfo.setStartTime(start);
+                        
+                        //buy time
+                        Date buyTime = dateFormatter.parse(dateFormatter.format(new Date(buyObject.get("purchase_time").getAsLong()*1000)));
+                        contractInfo.setBuyTime(buyTime);
+                        
+                        //end time 
+                        int expirationTime = contractInfo.getExpirationTime();
+                        long expirationTimeInSeconds = expirationTime * 60;
+                        long expirationTimeInMilliseconds = (startTime * 1000) + (expirationTimeInSeconds * 1000);
+                        Date endTime = dateFormatter.parse(dateFormatter.format(new Date(expirationTimeInMilliseconds)));
+                        contractInfo.setEndTime(endTime);
+                        
+                        //contract and transaction id
+                        contractInfo.setContractId(buyObject.get("contract_id").getAsLong());
+                        contractInfo.setTransactionId(buyObject.get("transaction_id").getAsLong());
+                    }else{
+                        System.out.println("!!!NE UDALOS' NAJTI CONTRACT INFO S TAKIM ITERNAL_ID!!!");
                     }
-                                        
+                       
                 }else{//if buy response message contains error 
                     //parse message and get error object
                     JsonObject jsonObject = parser.parse(message).getAsJsonObject().get("error").getAsJsonObject();
                     String errorCode = jsonObject.get("code").getAsString();
                     String errorMessage = jsonObject.get("message").getAsString();
                     
-                    int iternalId = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject().get("iternalId").getAsInt();
                                         
-                    for(int i = 0 ; i<trader.contractsInfoList.size(); i++){
-                        ContractInfo contractInfo = trader.contractsInfoList.get(i);
-                        if(contractInfo.getIternalId() == iternalId){
-                            
-                            //set up data
-                            contractInfo.setTraderName(trader.getName());
-                            contractInfo.setTraderToken(trader.getToken());
-                            
-                            //write error code and message to result column in contract_info table
-                            contractInfo.setResult("Code: " + errorCode + " Message: " + errorMessage);
-                            
-                            Date responceTime = contractInfo.getResponceTime();
-                            
-                            //save to db
-                            HibernateUtil.saveContractInfo(contractInfo);
-                            //remove from collection
-                            trader.contractsInfoList.remove(i);
-                        }
+                    
+                    if(contractInfo.getIternalId() == iternalId){
+
+                        //set up data
+                        contractInfo.setTraderName(trader.getName());
+                        contractInfo.setTraderToken(trader.getToken());
+
+                        //write error code and message to result column in contract_info table
+                        contractInfo.setResult("Code: " + errorCode + " Message: " + errorMessage);
+
+                        Date responceTime = contractInfo.getResponceTime();
                     }
                 }
+                
                 
                 return;
             }
@@ -205,7 +208,7 @@ public class Endpoint {
             }
             
             case "proposal": {
-//                processProposal(message, parser);
+                processProposal(message, parser, session);
                 return;
             }
             
@@ -214,8 +217,8 @@ public class Endpoint {
     }
     
     @OnClose
-    public void onClose(Session session){
-        System.out.println("Trader : " +trader.name + "+++@OnClose call");
+    public void onClose(Session session, CloseReason closeReason){
+        System.out.println("Trader : " +trader.name + "+++@OnClose call, close reason is = > " + closeReason.getReasonPhrase() );
         subscribedOnTransactionUpdates = false;
         try {
             session.close();
@@ -224,17 +227,118 @@ public class Endpoint {
         }
     }
 
-//    private void processProposal(String message, JsonParser parser) {
-//        float askPrice = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("ask_price").getAsFloat();
-//        float payout = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject().get("payout").getAsFloat();
-//        
-//        float binaryProposedPayout = (payout-askPrice)*100/askPrice;
-//               
-//        if(binaryProposedPayout > AppServlet.minimalPayout){
-//            isPayoutOk = true;
-//        }else{
-//            isPayoutOk = false;
-//        }
-//    }
+    private void processProposal(String message, JsonParser parser, Session session) {
+        //passthrough object
+        JsonObject passthroughObject = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject();
+        
+        int threadId = passthroughObject.get("threadId").getAsInt();
+        String tsName = passthroughObject.get("tsName").getAsString();
+        String duration = passthroughObject.get("duration").getAsString();
+        String contractType = passthroughObject.get("contractType").getAsString();
+        String symbol = passthroughObject.get("symbol").getAsString();
+        
+        //error element check
+        JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
+        if(errorElement != null){
+            JsonObject errorObject = errorElement.getAsJsonObject();
+            String errorMessage = errorObject.get("message").getAsString();
+            String errorCode = errorObject.get("code").getAsString();
+            //NOTE: new line at the end 
+            System.out.print("---"+threadId+"---Proposal for trader - > " + trader.name + " contatains error code - > " + errorCode + " and error message ->" + errorMessage + "\n");
+            return;
+        }
+        
+        //object will store info about contract
+        ContractInfo contractInfo = new ContractInfo(contractInfoIternalCounter++);
+        
+        //proposal object
+        JsonObject proposalObject = parser.parse(message).getAsJsonObject().get("proposal").getAsJsonObject();
+        
+        float askPrice = proposalObject.get("ask_price").getAsFloat();
+        float payout = proposalObject.get("payout").getAsFloat();
+        String id = proposalObject.get("id").getAsString();
+        
+        forgetPriceProposalStream(id, session, threadId);
+        
+        //payout calculation
+        float binaryProposedPayout = (payout-askPrice)*100/askPrice;
+        
+        //log about payout interest
+        System.out.println("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.name + " = > " + binaryProposedPayout);
+               
+        if(binaryProposedPayout > AppServlet.minimalPayout){//payout is OK
+                
+                //prepare json object for sending
+                //outer object
+                JsonObject jsonToSend = new JsonObject();
+                jsonToSend.addProperty("buy", id);
+                jsonToSend.addProperty("price", 1000);
+                //inner object
+                JsonObject passthroughToSendObject = new JsonObject();
+                passthroughToSendObject.addProperty("iternalId", contractInfo.getIternalId());
+                passthroughToSendObject.addProperty("streamId", id);
+                passthroughToSendObject.addProperty("threadId", threadId);
+                passthroughToSendObject.addProperty("tsName", tsName);
+                passthroughToSendObject.addProperty("duration", duration);
+                passthroughToSendObject.addProperty("contractType", contractType);
+                passthroughToSendObject.addProperty("symbol", symbol);
+                //add inner to outer
+                jsonToSend.add("passthrough", passthroughToSendObject);
+                
+                try {
+                    session.getBasicRemote().sendText(jsonToSend.toString());
+                } catch (IOException ex) {
+                    Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                contractInfo.setTraderName(trader.name);
+                contractInfo.setTraderToken(trader.token);
+                contractInfo.setTs(tsName);
+                contractInfo.setType(contractType);
+                contractInfo.setBuyPrice(trader.getTsByName(tsName).getLot());
+                contractInfo.setPayout(payout);
+                contractInfo.setSymbol(symbol);
+                contractInfo.setExpirationTime(Integer.valueOf(duration));
+                
+
+                //get and wtire send time
+                try {
+                    Date sendTime = dateFormatter.parse(dateFormatter.format(new Date(System.currentTimeMillis())));
+                    contractInfo.setSendTime(sendTime);
+                } catch (ParseException ex) {
+                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                
+                //add contract info into collection
+                trader.contractsInfoList.add(contractInfo);
+                
+        }
+    }
+
+    private void forgetPriceProposalStream(final String id, final Session session, final int threadId) {
+
+            if(!subscriptions.contains(id)){
+                subscriptions.add(id);
+
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        //asking binary to 'forget' about stream with 'id'
+                        if(subscriptions.contains(id)){
+                            try {
+                                session.getBasicRemote().sendText("{\"forget\": \""+id+"\"}");
+                            } catch (IOException ex) {
+                                Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                            //remove stream id from set
+                            subscriptions.remove(id);
+
+                            System.out.println("---"+threadId+"---Trader " + trader.name + " OTPISALS9 OT PRICE PROPOSAL");
+                        }
+                    }
+                }, AppServlet.timeToWaitBetterProposal*1000);
+            }
+        
+    }
     
 }

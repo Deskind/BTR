@@ -8,6 +8,7 @@ package com.deskind.btrade.entities;
 import com.deskind.btrade.dto.TraderDTO;
 import com.deskind.btrade.utils.Endpoint;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -18,6 +19,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+import org.hibernate.mapping.Set;
 
 /**
  *
@@ -46,7 +48,6 @@ public class Trader implements Comparable<Trader>{
     
     @Transient
     public List<ContractInfo> contractsInfoList = new ArrayList<>();
-
 
     
     //CONSTRUCTORS
