@@ -49,12 +49,9 @@ public class PayoutInterestEndpoint {
     
     @OnOpen
     public void onOpen(Session session) {
-        try {
             //        session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\"}");
-            session.getBasicRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+parentThreadId+"}}");
-        } catch (IOException ex) {
-            Logger.getLogger(PayoutInterestEndpoint.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        session.getAsyncRemote().sendText("{\"proposal\": 1,\"amount\": \"1\",\"basis\": \"payout\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+parentThreadId+"}}");
+        
     }
     
     @OnMessage

@@ -4,7 +4,6 @@ package com.deskind.btrade.utils;
 import com.deskind.btrade.AppServlet;
 import static com.deskind.btrade.AppServlet.contractInfoIternalCounter;
 import static com.deskind.btrade.AppServlet.dateFormatter;
-import static com.deskind.btrade.AppServlet.sendedSignalsCounter;
 import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.google.gson.JsonElement;
@@ -53,8 +52,8 @@ public class Endpoint {
         
     @OnOpen
     public void onOpen (Session session) throws IOException, InterruptedException{
-        System.out.println("+++OnOpen. Trader name is " + trader.name + " trader token is: " + trader.token);
-        session.getBasicRemote().sendText("{\"authorize\":\""+trader.getToken()+"\"}");
+        System.out.println("+++Trader " + trader.getName() + " ONLINE");
+        session.getAsyncRemote().sendText("{\"authorize\":\""+trader.getToken()+"\"}");
     }
     
     @OnMessage
@@ -91,11 +90,14 @@ public class Endpoint {
                 int contractInfoCollectionIndex = -1;
                 
                 JsonElement errorElement = parser.parse(message).getAsJsonObject().get("error");
-                JsonObject buyObject = parser.parse(message).getAsJsonObject().get("buy").getAsJsonObject();
+                JsonElement buyElement = parser.parse(message).getAsJsonObject().get("buy");
                 JsonObject passthroughObject = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject();
                 
                 int iternalId = passthroughObject.get("iternalId").getAsInt();
                 String streamId = passthroughObject.get("streamId").getAsString();
+                int threadId = passthroughObject.get("threadId").getAsInt();
+                
+                
                 
                 subscriptions.remove(streamId);
                
@@ -109,16 +111,21 @@ public class Endpoint {
                     }
                 }
                 
-                if(errorElement == null){//if no error element in server responce                    
+                if(errorElement == null){//if no error element in server responce   
+                    JsonObject buyObject = buyElement.getAsJsonObject();
+                    float buyPrice = buyObject.get("buy_price").getAsFloat();
+                    float payout = buyObject.get("payout").getAsFloat();
+                    
+                    AppServlet.logs.get(threadId).add("---"+threadId+"---Trader " + trader.getName() + " KUPIL KONTRACT NA SUMMY = > " + buyPrice + " S VbIPLATOY = > " + payout);
+                    
                     //subscribe on transaction updates at time of first contract buy
                     if(!subscribedOnTransactionUpdates){
-                        try {
-                        session.getBasicRemote().sendText("{\"transaction\": 1,\"subscribe\": 1}");
+                        if(session.isOpen() && session != null){
+                            session.getAsyncRemote().sendText("{\"transaction\": 1,\"subscribe\": 1}");
+                        }
                         //trigger flag to prevent second time subscription
                         subscribedOnTransactionUpdates = true;
-                    } catch (IOException ex) {
-                        Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    
                     }
                     
                     
@@ -218,13 +225,8 @@ public class Endpoint {
     
     @OnClose
     public void onClose(Session session, CloseReason closeReason){
-        System.out.println("Trader : " +trader.name + "+++@OnClose call, close reason is = > " + closeReason.getReasonPhrase() );
+        System.out.println("+++Trader " + trader.getName() + " OFFLINE, close reason is = > " + closeReason.getReasonPhrase() );
         subscribedOnTransactionUpdates = false;
-        try {
-            session.close();
-        } catch (IOException ex) {
-            Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
     private void processProposal(String message, JsonParser parser, Session session) {
@@ -244,7 +246,8 @@ public class Endpoint {
             String errorMessage = errorObject.get("message").getAsString();
             String errorCode = errorObject.get("code").getAsString();
             //NOTE: new line at the end 
-            System.out.print("---"+threadId+"---Proposal for trader - > " + trader.name + " contatains error code - > " + errorCode + " and error message ->" + errorMessage + "\n");
+            AppServlet.logs.get(threadId).add("---"+threadId+"---Proposal for trader - > " + trader.getName() + " contatains error code - > " + errorCode + " and error message ->" + errorMessage + "\n");
+//            System.out.print("---"+threadId+"---Proposal for trader - > " + trader.getName() + " contatains error code - > " + errorCode + " and error message ->" + errorMessage + "\n");
             return;
         }
         
@@ -264,7 +267,8 @@ public class Endpoint {
         float binaryProposedPayout = (payout-askPrice)*100/askPrice;
         
         //log about payout interest
-        System.out.println("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.name + " = > " + binaryProposedPayout);
+        AppServlet.logs.get(threadId).add("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.getName() + " = > " + binaryProposedPayout);
+//        System.out.println("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.getName() + " = > " + binaryProposedPayout);
                
         if(binaryProposedPayout > AppServlet.minimalPayout){//payout is OK
                 
@@ -285,14 +289,13 @@ public class Endpoint {
                 //add inner to outer
                 jsonToSend.add("passthrough", passthroughToSendObject);
                 
-                try {
-                    session.getBasicRemote().sendText(jsonToSend.toString());
-                } catch (IOException ex) {
-                    Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
+                if(session.isOpen() && session != null){
+                    session.getAsyncRemote().sendText(jsonToSend.toString());
                 }
                 
-                contractInfo.setTraderName(trader.name);
-                contractInfo.setTraderToken(trader.token);
+                
+                contractInfo.setTraderName(trader.getName());
+                contractInfo.setTraderToken(trader.getToken());
                 contractInfo.setTs(tsName);
                 contractInfo.setType(contractType);
                 contractInfo.setBuyPrice(trader.getTsByName(tsName).getLot());
@@ -318,27 +321,35 @@ public class Endpoint {
     private void forgetPriceProposalStream(final String id, final Session session, final int threadId) {
 
             if(!subscriptions.contains(id)){
-                subscriptions.add(id);
+                addStreamIdToSet(id);
 
                 new Timer().schedule(new TimerTask() {
                     @Override
                     public void run() {
                         //asking binary to 'forget' about stream with 'id'
                         if(subscriptions.contains(id)){
-                            try {
-                                session.getBasicRemote().sendText("{\"forget\": \""+id+"\"}");
-                            } catch (IOException ex) {
-                                Logger.getLogger(Endpoint.class.getName()).log(Level.SEVERE, null, ex);
+                            if(session.isOpen() && session != null){
+                                session.getAsyncRemote().sendText("{\"forget\": \""+id+"\"}");
                             }
+                            
                             //remove stream id from set
-                            subscriptions.remove(id);
-
-                            System.out.println("---"+threadId+"---Trader " + trader.name + " OTPISALS9 OT PRICE PROPOSAL");
+                            deleteStreamIdFromSet(id);
+                            
+                            AppServlet.logs.get(threadId).add("---"+threadId+"---Trader " + trader.getName() + " OTPISALS9 OT PRICE PROPOSAL");
+//                            System.out.println("---"+threadId+"---Trader " + trader.getName() + " OTPISALS9 OT PRICE PROPOSAL");
                         }
                     }
                 }, AppServlet.timeToWaitBetterProposal*1000);
             }
         
+    }
+    
+    private synchronized void addStreamIdToSet(String id){
+        subscriptions.add(id);
+    }
+    
+    private synchronized void deleteStreamIdFromSet(String id){
+        subscriptions.remove(id);
     }
     
 }

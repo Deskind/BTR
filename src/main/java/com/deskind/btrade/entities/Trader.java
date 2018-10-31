@@ -31,8 +31,8 @@ public class Trader implements Comparable<Trader>{
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "trader_id")
     private int id;
-    public String name ;
-    public String token;
+    private String name ;
+    private String token;
     
     @OneToMany (fetch = FetchType.EAGER, orphanRemoval = true)
     public List<TradingSystem> tsList = new ArrayList<>();

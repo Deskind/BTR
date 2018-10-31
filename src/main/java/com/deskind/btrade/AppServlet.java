@@ -7,6 +7,7 @@ import com.deskind.btrade.dto.TradingSystemDTO;
 import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
+import com.deskind.btrade.tasks.LogWriterTimerTask;
 import com.deskind.btrade.utils.Endpoint;
 import com.deskind.btrade.utils.HibernateUtil;
 import com.deskind.btrade.utils.PayoutInterestEndpoint;
@@ -49,40 +50,43 @@ public class AppServlet extends HttpServlet {
      * Default value if 5 seconds
      */
     public static int timeToWaitBetterProposal = 5;
-    
-    private static boolean logTimerTaskInRun = false;
-    
+        
     //date formatter
     public static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
-    //counters
-    volatile public static int sendedSignalsCounter = 1;
+    //generating thread id based on this variable every time the signal was received 
+    volatile public static int receivedSignalsCounter = 1;
+    
     public static int numberOfBoughtContracts;
     
-    //colections
+    //all traders (active and not active too)
     public static List<Trader> traders = new ArrayList<>();
     
-    //app IDs (will be initialized at start trading process
+    //application IDs (will be initialized at start trading process
     public static String [] appIDs;
+    
+    //minimal payout at which buy contracts
     public static int minimalPayout = 65;//65 is default value
     
     //timers
     public static Timer aliveTimer;
-    public static Timer timer;
     
+    //tasks for timers
     public static TimerTask stayAliveTimerTask;
     
     //counters
     public static int contractInfoIternalCounter;
+    
+    //utilize for 'touching' DB to prevent DB 'timeout'
     public static int dbTouchCounter;
     
     //flags
-    public boolean firstRun = true;
+    public static boolean firstRun = true;
     
-    //map with logs
-    private static HashMap<Integer, ArrayList<String>> logs = new HashMap<Integer, ArrayList<String>>();
+    //map with logs (every entry contains logs related to particular signal)
+    public static HashMap<Integer, ArrayList<String>> logs = new HashMap<Integer, ArrayList<String>>();
     
-   //Main
+    //main logic , some kind of request mapping
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         
@@ -91,65 +95,23 @@ public class AppServlet extends HttpServlet {
         switch(action){
             
             case "addTrader" :{
-                //to db
-                Trader trader = new Trader(req.getParameter("name"), req.getParameter("token"));
-                HibernateUtil.saveTrader(trader);
-                
-                //to collection
-                traders.add(trader);
+            	processAddTrader(req);
                 return;
             }
             
-            //aka toString for all traders
             case "printAllTraders" :{
-                String result = "Vsego trejderov : " + traders.size()+"\n";
-                                
-                for(Trader t : traders){
-                    result+=t.toString()+"\n";
-                }
-                resp.getWriter().write(result);
+                processPrintAllTraders(resp);
                 return;
             }
             
             //returns all traders as response to js file
             case "allTraders": {
-                if(firstRun){
-                    traders = HibernateUtil.getAllTraders();
-                    firstRun = false;
-                }
-                
-                //generate dto for transfering
-                List<TraderDTO> tradersAsDTO = new ArrayList<>();
-                for(Trader trader : traders){
-                    TraderDTO traderDTO = trader.toDTO();
-                    for(TradingSystem tradingSystem : trader.getTsList()){
-                        traderDTO.getTsListDTO().add(tradingSystem.toDTO());
-                    }
-                    tradersAsDTO.add(traderDTO);
-                }
-                
-                resp.setContentType("application/json");
-                resp.setCharacterEncoding("UTF-8");
-                
-                resp.getWriter().write(new Gson().toJson(tradersAsDTO));
+            	processAllTraders(resp);
                 return;
             }
             
             case "delTrader" : {
-                String token = req.getParameter("token");
-                
-                //from collection avoiding concurrent modification  
-                for(int i = 0; i < traders.size();i++){
-                    Trader trader = traders.get(i);
-                    if(trader.token.equals(token)){
-                        traders.remove(i);
-                    }
-                }
-                
-                //from db
-                String result = HibernateUtil.deleteTrader(token);
-                
-                resp.getWriter().write(result);
+            	processDelitingTrader(req, resp);
                 return;
             }
             
@@ -171,76 +133,70 @@ public class AppServlet extends HttpServlet {
 ////              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_50&tsName=t2
 ////              localhost:8083/BTR/AppServlet?action=go&type=CALL&duration=3&duration_unit=m&symbol=R_33&tsName=t1
                 
+                //signal information
                 final String type = req.getParameter("type");
                 final String duration = req.getParameter("duration");
                 final String durationUnit = req.getParameter("duration_unit");
                 final String symbol = req.getParameter("symbol");
                 final String tsName = req.getParameter("tsName");
                 
-                Thread t = new Thread(new Runnable() {
+                
                     
-                    @Override
-                    public void run() {
+                    
                         //variables
                         int threadId = generateThreadId();
-                        int numberOfSubscriptionsOnProposal = 0;
+                        int intrestedTraders = 0;
+                        
+                        //timer for writing logs to file
+                        new Timer().schedule(new LogWriterTimerTask(logs, threadId), timeToWaitBetterProposal*1000 + 5000);
                         
                         //add new Entry to 'logs' HashMap
-                        logs.put(threadId, new ArrayList<String>());
-                        logs.get(threadId).add("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
+                        addEntryToLogsMap(threadId);
+                        
                         logs.get(threadId).add("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
-                        logs.get(threadId).add("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+                        logs.get(threadId).add("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
                         
-                        //log message at time of receiveing signal
-//                        System.out.println("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
-                        
-                        //iterate over traders to find trading systems and subscribe on "Price proposal"
+                        //finding interested traders (trading systems)
                         for(Trader trader : traders){                            
                             TradingSystem tradingSystem = trader.getTsByName(tsName);
                             if(tradingSystem != null && tradingSystem.isActive()){
-                                //Outer json object
-                                JsonObject jsonToSend = new JsonObject();
-                                jsonToSend.addProperty("proposal", 1);
-                                jsonToSend.addProperty("subscribe", 1);
-                                jsonToSend.addProperty("amount", tradingSystem.getLot());
-                                jsonToSend.addProperty("basis", "stake");
-                                jsonToSend.addProperty("contract_type", type);
-                                jsonToSend.addProperty("currency", "USD");
-                                jsonToSend.addProperty("duration", duration);
-                                jsonToSend.addProperty("duration_unit", durationUnit);
-                                jsonToSend.addProperty("symbol", symbol);
-                                //inner passthrough json object
-                                JsonObject passthroughObject = new JsonObject();
-                                passthroughObject.addProperty("threadId", threadId);
-                                passthroughObject.addProperty("tsName", tsName);
-                                passthroughObject.addProperty("duration", duration);
-                                passthroughObject.addProperty("contractType", type);
-                                passthroughObject.addProperty("symbol", symbol);
-                                
-                                //adding inner object to outer
-                                jsonToSend.add("passthrough", passthroughObject);
-                                
-                                //sending............
-                                try {
-//                                    tradingSystem.getSession().getBasicRemote().sendText("{\"proposal\": 1, \"subscribe\":1, \"amount\": \""+tradingSystem.getLot()+"\",\"basis\": \"stake\", \"contract_type\": \""+type+"\", \"currency\": \"USD\", \"duration\": \""+duration+"\", \"duration_unit\": \""+durationUnit+"\", \"symbol\": \""+symbol+"\", \"passthrough\":{\"threadId\":"+threadId+", \"tsName\":\""+tsName+"\", \"duration\":"+duration+"}}");
-                                    tradingSystem.getSession().getBasicRemote().sendText(jsonToSend.toString());
-
-                                } catch (IOException ex) {
-                                    Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                                numberOfSubscriptionsOnProposal++;
+                            	Session session = tradingSystem.getSession();
+                            	if(session.isOpen() && session != null){
+	                                //Outer json object
+	                                JsonObject jsonToSend = new JsonObject();
+	                                
+	                                jsonToSend.addProperty("proposal", 1);
+	                                jsonToSend.addProperty("subscribe", 1);
+	                                jsonToSend.addProperty("amount", tradingSystem.getLot());
+	                                jsonToSend.addProperty("basis", "stake");
+	                                jsonToSend.addProperty("contract_type", type);
+	                                jsonToSend.addProperty("currency", "USD");
+	                                jsonToSend.addProperty("duration", duration);
+	                                jsonToSend.addProperty("duration_unit", durationUnit);
+	                                jsonToSend.addProperty("symbol", symbol);
+	                                
+	                                //inner passthrough json object
+	                                JsonObject passthroughObject = new JsonObject();
+	                                passthroughObject.addProperty("threadId", threadId);
+	                                passthroughObject.addProperty("tsName", tsName);
+	                                passthroughObject.addProperty("duration", duration);
+	                                passthroughObject.addProperty("contractType", type);
+	                                passthroughObject.addProperty("symbol", symbol);
+	                                
+	                                //adding inner object to outer
+	                                jsonToSend.add("passthrough", passthroughObject);
+	                                
+	                                //sending............
+	                                tradingSystem.getSession().getAsyncRemote().sendText(jsonToSend.toString());
+                            	}
+                                intrestedTraders++;
                             }
                         }
                         
-                        //log message about number subscribed traders
-//                        System.out.println("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + numberOfSubscriptionsOnProposal);
+                        logs.get(threadId).add("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + intrestedTraders);
+                    
                         
-                        
-                    }
-                        
-                });
                 
-                t.start();
                 
                 resp.sendRedirect("/BTR");
                 
@@ -255,7 +211,7 @@ public class AppServlet extends HttpServlet {
 
                     connectAndUthorize();
 
-                    aliveTimer.schedule(stayAliveTimerTask, 33000, 44000);                
+                    aliveTimer.schedule(stayAliveTimerTask, 33000, 33000);                
                 }
                 
                 return;
@@ -278,7 +234,7 @@ public class AppServlet extends HttpServlet {
                 
                 //add to collection
                 for(Trader trader : traders){
-                    if(trader.token.equals(token)){
+                    if(trader.getToken().equals(token)){
                         ts.setSession(ts.getLot(), trader.getEndpoint());
                         trader.tsList.add(ts);
                     }
@@ -298,7 +254,7 @@ public class AppServlet extends HttpServlet {
                 
                 //update in collection
                 for(Trader trader : traders){
-                    if(trader.token.equals(token)){
+                    if(trader.getToken().equals(token)){
                         for(TradingSystem ts : trader.tsList){
                             if(ts.getName().equals(tsName)){
                                 ts.setLot(lot);
@@ -356,7 +312,97 @@ public class AppServlet extends HttpServlet {
         }
     }
     
-    private static boolean netIsAvailable() {
+    /**
+     * 
+     * @param req
+     * @param resp
+     */
+    private void processDelitingTrader(HttpServletRequest req, HttpServletResponse resp) {
+    	String token = req.getParameter("token");
+        
+        //deleting from collection avoiding concurrent modification  
+        for(int i = 0; i < traders.size();i++){
+            Trader trader = traders.get(i);
+            if(trader.getToken().equals(token)){
+                traders.remove(i);
+            }
+        }
+        
+        //deleting from DB
+        String result = HibernateUtil.deleteTrader(token);
+        
+        try {
+			resp.getWriter().write(result);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/**
+     * Returns all traders in response as JSON string
+     * @param resp
+     * @note Not mess up with 'showAllTraders' method
+     */
+    private void processAllTraders(HttpServletResponse resp) {
+    	if(firstRun){
+            traders = HibernateUtil.getAllTraders();
+            firstRun = false;
+        }
+        
+        //generate DTO for transferring
+        List<TraderDTO> tradersAsDTO = new ArrayList<>();
+        for(Trader trader : traders){
+            TraderDTO traderDTO = trader.toDTO();
+            for(TradingSystem tradingSystem : trader.getTsList()){
+                traderDTO.getTsListDTO().add(tradingSystem.toDTO());
+            }
+            tradersAsDTO.add(traderDTO);
+        }
+        
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        
+        try {
+			resp.getWriter().write(new Gson().toJson(tradersAsDTO));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+     * aka toString for all traders
+     * @param resp
+     */
+    private void processPrintAllTraders(HttpServletResponse resp) {
+    	 String result = "Vsego trejderov : " + traders.size()+"\n";
+    	                                 
+         for(Trader t : traders){
+             result+=t.toString()+"\n";
+	     }
+         
+	     try {
+			resp.getWriter().write(result);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+    
+    /**
+     * Add new trader to DB
+     * @param req For getting information about new Trader
+     */
+	private void processAddTrader(HttpServletRequest req) {
+    	Trader trader = new Trader(req.getParameter("name"), req.getParameter("token"));
+        HibernateUtil.saveTrader(trader);
+        
+        //to collection
+        traders.add(trader);
+		
+	}
+
+	private static boolean netIsAvailable() {
     try {
         final URL url = new URL("http://www.google.com");
         final URLConnection conn = url.openConnection();
@@ -371,7 +417,11 @@ public class AppServlet extends HttpServlet {
     }
     
     private static synchronized int generateThreadId(){
-        return sendedSignalsCounter++;
+        return receivedSignalsCounter++;
+    }
+    
+    private static synchronized void addEntryToLogsMap(int threadId) {
+    	logs.put(threadId, new ArrayList<String>());
     }
     
     private static String[] getAppIDs(){
@@ -408,17 +458,24 @@ public class AppServlet extends HttpServlet {
                         }
                         
                         //if everything is OK
-                        try {
-                            ts.getSession().getBasicRemote().sendText("{\"ping\": 1}");
-                            ts.getSession().getBasicRemote().sendText("{\"balance\": 1}");
-                        } catch (IOException ex) {
-                            Logger.getLogger(AppServlet.class.getName()).log(Level.SEVERE, null, ex);
-                        }
+                        Session session = ts.getSession();
+                        
+						if (session.isOpen() && session != null) {
+							session.getAsyncRemote().sendText("{\"ping\": 1}");
+							try {
+								Thread.sleep(300);
+							} catch (InterruptedException e) {
+								System.out.println("+++Thread was interrupted at time of sleeping");
+								e.printStackTrace();
+							}
+							session.getAsyncRemote().sendText("{\"balance\": 1}");
+						}
+
                     } 
                 }
                 
                 if(badSessionsCounter == 0){
-                        System.out.println("...OK...");
+                        System.out.print("...OK...");
                 }else{
                     System.out.println("...Kolichestvo zakrbItbIx sessiy => " + badSessionsCounter);
                 }

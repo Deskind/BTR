@@ -453,7 +453,7 @@ function delTrader(token){
     
 }
 
-function updateTraderTs(token, tsName, lot, active, ){
+function updateTraderTs(token, tsName, lot, active){
     $.ajax({
         cache: false,
         url: "AppServlet?action=updateTraderTs&token="+token+"&tsName="+tsName+"&lot="+lot+"&active="+active,
