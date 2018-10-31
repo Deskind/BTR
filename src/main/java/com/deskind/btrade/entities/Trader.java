@@ -33,7 +33,6 @@ public class Trader implements Comparable<Trader>{
     private int id;
     private String name ;
     private String token;
-    
     @OneToMany (fetch = FetchType.EAGER, orphanRemoval = true)
     public List<TradingSystem> tsList = new ArrayList<>();
     

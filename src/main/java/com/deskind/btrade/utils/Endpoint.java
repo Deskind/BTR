@@ -1,42 +1,40 @@
 
 package com.deskind.btrade.utils;
 
-import com.deskind.btrade.AppServlet;
 import static com.deskind.btrade.AppServlet.contractInfoIternalCounter;
-import static com.deskind.btrade.AppServlet.dateFormatter;
-import com.deskind.btrade.entities.ContractInfo;
-import com.deskind.btrade.entities.Trader;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.awt.BorderLayout;
+
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
-import org.hibernate.mapping.Set;
+import javax.websocket.CloseReason.CloseCodes;
+
+import com.deskind.btrade.AppServlet;
+import com.deskind.btrade.entities.ContractInfo;
+import com.deskind.btrade.entities.Trader;
+import com.deskind.btrade.entities.TradingSystem;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @ClientEndpoint
 public class Endpoint {
     
     //Date formatter
     private static SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    
-    //COUNTERS
-    
     
     //FLAG
     private boolean subscribedOnTransactionUpdates = false;
@@ -207,10 +205,7 @@ public class Endpoint {
                         }
                     }else{
                     }
-                
                 }
-                
-                
                 return;
             }
             
@@ -218,19 +213,45 @@ public class Endpoint {
                 processProposal(message, parser, session);
                 return;
             }
-            
-            
         }
     }
     
     @OnClose
     public void onClose(Session session, CloseReason closeReason){
-        System.out.println("+++Trader " + trader.getName() + " OFFLINE, close reason is = > " + closeReason.getReasonPhrase() );
+        System.out.println("+++Trader " + trader.getName() + " OFFLINE, close reason is = > " + closeReason.getReasonPhrase() + " with code " +closeReason.getCloseCode());
         subscribedOnTransactionUpdates = false;
+        
+        
+        String phrase = closeReason.getReasonPhrase();
+        
+        if(phrase.equals("dont-want-to-restart")) {
+        	
+        }else {
+        	try {
+				session.close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "good bye"));
+			} catch (IOException e) {
+				System.out.println("+++BAD happened ...");
+				e.printStackTrace();
+			}
+        	
+        	//searching for closed sessions
+        	List<TradingSystem> tsList = trader.getTsList();
+	        for(TradingSystem ts : tsList) {
+	        	if(!ts.getSession().isOpen()) {
+	        		//run new task for setting new session instance session
+	        		new Timer().schedule(new TimerTask() {
+						@Override
+						public void run() {
+							ts.setSession(ts.getLot(), trader.getEndpoint());
+						}
+					}, 3000);
+	        	}
+	        }
+        }
     }
 
     private void processProposal(String message, JsonParser parser, Session session) {
-        //passthrough object
+        //passthrough  object
         JsonObject passthroughObject = parser.parse(message).getAsJsonObject().get("passthrough").getAsJsonObject();
         
         int threadId = passthroughObject.get("threadId").getAsInt();

@@ -37,6 +37,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
 import javax.websocket.Session;
@@ -89,13 +91,11 @@ public class AppServlet extends HttpServlet {
     //main logic , some kind of request mapping
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        
-        String action = req.getParameter("action");
-        
-        switch(action){
+                
+        switch(req.getParameter("action")){
             
             case "addTrader" :{
-            	processAddTrader(req);
+            	processAddNewTrader(req);
                 return;
             }
             
@@ -211,10 +211,15 @@ public class AppServlet extends HttpServlet {
 
                     connectAndUthorize();
 
-                    aliveTimer.schedule(stayAliveTimerTask, 33000, 33000);                
+                    aliveTimer.schedule(stayAliveTimerTask, 10000, 10000);                
                 }
                 
                 return;
+            }
+            
+            case "stop": {
+            	processStopTrading(resp);
+            	return;
             }
             
             case "setMinimalPayout": {
@@ -306,6 +311,11 @@ public class AppServlet extends HttpServlet {
             }
             
             case "sortTraders":{
+            	//code for test 
+            	traders.get(0).getTsList().get(0).getSession().close(new CloseReason(CloseCodes.CLOSED_ABNORMALLY, " for test purposes"));
+        		
+            	traders.get(1).getTsList().get(0).getSession().close(new CloseReason(CloseCodes.CLOSED_ABNORMALLY, " for test purposes"));
+
                 Collections.sort(traders);
                 return;
             }
@@ -313,6 +323,34 @@ public class AppServlet extends HttpServlet {
     }
     
     /**
+     * Method stops trading process releasing all sessions with server
+     * @param response Http response to client
+     */
+    private void processStopTrading(HttpServletResponse response) {
+    	//release all sessions
+    	for(Trader trader :traders) {
+     		for(TradingSystem ts : trader.getTsList()) {
+     			if(ts.getSession().isOpen()) {
+     				
+     				try {
+ 						ts.getSession().close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "dont-want-to-restart"));
+ 					} catch (IOException e) {
+ 						e.printStackTrace();
+ 					}
+     				
+     			}
+     		}
+     	}
+    	
+    	//response with message
+    	try {
+			response.getWriter().write("Процесс торговли остановлен");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
      * 
      * @param req
      * @param resp
@@ -393,8 +431,11 @@ public class AppServlet extends HttpServlet {
      * Add new trader to DB
      * @param req For getting information about new Trader
      */
-	private void processAddTrader(HttpServletRequest req) {
+	private void processAddNewTrader(HttpServletRequest req) {
     	Trader trader = new Trader(req.getParameter("name"), req.getParameter("token"));
+    	trader.setEndpoint(new Endpoint(trader));
+    	
+    	//save to DB
         HibernateUtil.saveTrader(trader);
         
         //to collection
@@ -451,11 +492,11 @@ public class AppServlet extends HttpServlet {
                             badSessionsCounter++;
                             continue;
                         }
-                        if(!ts.getSession().isOpen()){
-                            ts.setSession(ts.getLot(), trader.getEndpoint());
-                            badSessionsCounter++;
-                            continue;
-                        }
+//                        if(!ts.getSession().isOpen()){
+//                            ts.setSession(ts.getLot(), trader.getEndpoint());
+//                            badSessionsCounter++;
+//                            continue;
+//                        }
                         
                         //if everything is OK
                         Session session = ts.getSession();
@@ -496,6 +537,8 @@ public class AppServlet extends HttpServlet {
         System.out.println("+++Destroy method call");
         aliveTimer.cancel();
         HibernateUtil.getSessionFactory().close();
+        
+        
     }
 
     private static void connectAndUthorize() {
