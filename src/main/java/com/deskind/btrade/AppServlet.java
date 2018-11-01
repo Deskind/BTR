@@ -161,7 +161,7 @@ public class AppServlet extends HttpServlet {
                             TradingSystem tradingSystem = trader.getTsByName(tsName);
                             if(tradingSystem != null && tradingSystem.isActive()){
                             	Session session = tradingSystem.getSession();
-                            	if(session.isOpen() && session != null){
+                            	if(session.isOpen()){
 	                                //Outer json object
 	                                JsonObject jsonToSend = new JsonObject();
 	                                
@@ -194,10 +194,6 @@ public class AppServlet extends HttpServlet {
                         }
                         
                         logs.get(threadId).add("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + intrestedTraders);
-                    
-                        
-                
-                
                 resp.sendRedirect("/BTR");
                 
                 return;
@@ -205,15 +201,7 @@ public class AppServlet extends HttpServlet {
             
             //start trading process when button start clicked
             case "start": {
-                if(dateCheck() == -1){
-                    //getting app IDs
-                    appIDs = req.getParameter("appIDs").split("-");
-
-                    connectAndUthorize();
-
-                    aliveTimer.schedule(stayAliveTimerTask, 10000, 10000);                
-                }
-                
+            	processStartTrading(req.getParameter("appIDs"));
                 return;
             }
             
@@ -322,13 +310,71 @@ public class AppServlet extends HttpServlet {
         }
     }
     
-    /**
+    private void processStartTrading(String ids) {
+    	if(dateCheck() == -1){
+            //getting app IDs
+            appIDs = ids.split("-");
+
+            connectAndUthorize();
+            
+          //stay alive timer
+            aliveTimer = new Timer();
+            
+            //stay alive timer task
+            stayAliveTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    for(Trader trader : traders){
+                        for(TradingSystem ts : trader.getTsList()){
+                            Session session = ts.getSession();
+    						if (session.isOpen()) {
+    							session.getAsyncRemote().sendText("{\"balance\": 1}");
+    						}
+                        } 
+                    }
+                    
+                    //prevent database timeout problem
+                    dbTouchCounter++;
+                    if(dbTouchCounter == 30){
+                        dbTouchCounter = 0;
+                        HibernateUtil.getAllTradingSystems();
+                    }
+                    
+                    System.out.print("...OK...");
+                }
+            };
+            
+            aliveTimer.schedule(stayAliveTimerTask, 44000, 44000);
+        }
+    	
+    	
+        
+	}
+
+	/**
      * Method stops trading process releasing all sessions with server
      * @param response Http response to client
      */
     private void processStopTrading(HttpServletResponse response) {
     	//release all sessions
-    	for(Trader trader :traders) {
+    	releseWebSocketSessions();
+    	
+    	stayAliveTimerTask.cancel();
+    	
+    	aliveTimer.cancel();
+    	aliveTimer.purge();
+    	
+    	
+    	//response with message
+    	try {
+			response.getWriter().write("Trading process stopped");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+    
+	private void releseWebSocketSessions() {
+		for(Trader trader :traders) {
      		for(TradingSystem ts : trader.getTsList()) {
      			if(ts.getSession().isOpen()) {
      				
@@ -341,13 +387,6 @@ public class AppServlet extends HttpServlet {
      			}
      		}
      	}
-    	
-    	//response with message
-    	try {
-			response.getWriter().write("Процесс торговли остановлен");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 	}
 
 	/**
@@ -363,6 +402,13 @@ public class AppServlet extends HttpServlet {
             Trader trader = traders.get(i);
             if(trader.getToken().equals(token)){
                 traders.remove(i);
+                for(TradingSystem ts : trader.getTsList()) {
+                	try {
+                		ts.getSession().close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "dont-want-to-restart"));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+                }
             }
         }
         
@@ -372,7 +418,6 @@ public class AppServlet extends HttpServlet {
         try {
 			resp.getWriter().write(result);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -471,76 +516,24 @@ public class AppServlet extends HttpServlet {
     
     @Override
     public void init(){
-        //stay alive timer
-        aliveTimer = new Timer();
-        
-        //stay alive timer task
-        stayAliveTimerTask = new TimerTask() {
-            @Override
-            public void run() {
-                int badSessionsCounter = 0;
-                
-                for(Trader trader : traders){
-                    //check if trader was recently added and has no endpoint reference
-                    if(trader.getEndpoint() == null){
-                        trader.setEndpoint(new Endpoint(trader));
-                    }
-                    
-                    for(TradingSystem ts : trader.getTsList()){
-                        if(ts.getSession() == null){
-                            ts.setSession(ts.getLot(), trader.getEndpoint());
-                            badSessionsCounter++;
-                            continue;
-                        }
-//                        if(!ts.getSession().isOpen()){
-//                            ts.setSession(ts.getLot(), trader.getEndpoint());
-//                            badSessionsCounter++;
-//                            continue;
-//                        }
-                        
-                        //if everything is OK
-                        Session session = ts.getSession();
-                        
-						if (session.isOpen() && session != null) {
-							session.getAsyncRemote().sendText("{\"ping\": 1}");
-							try {
-								Thread.sleep(300);
-							} catch (InterruptedException e) {
-								System.out.println("+++Thread was interrupted at time of sleeping");
-								e.printStackTrace();
-							}
-							session.getAsyncRemote().sendText("{\"balance\": 1}");
-						}
-
-                    } 
-                }
-                
-                if(badSessionsCounter == 0){
-                        System.out.print("...OK...");
-                }else{
-                    System.out.println("...Kolichestvo zakrbItbIx sessiy => " + badSessionsCounter);
-                }
-                
-                //prevent database timeout problem
-                dbTouchCounter++;
-                if(dbTouchCounter == 30){
-                    dbTouchCounter = 0;
-                    HibernateUtil.getAllTradingSystems();
-                }
-            }
-        };
+    	
     }
 
     @Override
     
     public void destroy() {
         System.out.println("+++Destroy method call");
+        
+        releseWebSocketSessions();
         aliveTimer.cancel();
         HibernateUtil.getSessionFactory().close();
         
         
     }
-
+    
+    /**
+     * Creates endpoints and assigning sessions to trading systems
+     */
     private static void connectAndUthorize() {
         //creating endpoint for every trader
         for(Trader trader : traders){

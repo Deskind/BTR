@@ -40,7 +40,7 @@ public class Endpoint {
     private boolean subscribedOnTransactionUpdates = false;
     
     //SUBSCRIPTIONS MAP
-    public HashSet<String> subscriptions = new HashSet<String>();
+    private static HashSet<String> subscriptions = new HashSet<String>();
     
     public Trader trader;
     
@@ -97,7 +97,7 @@ public class Endpoint {
                 
                 
                 
-                subscriptions.remove(streamId);
+                deleteStreamIdFromSet(streamId);
                
                 //find contract info in collection
                 for(int i = 0; i < trader.contractsInfoList.size();i++){
@@ -225,8 +225,9 @@ public class Endpoint {
         String phrase = closeReason.getReasonPhrase();
         
         if(phrase.equals("dont-want-to-restart")) {
-        	
+        	//DO nothing 
         }else {
+        	//try to close as 'NORMAL_CLOSURE'
         	try {
 				session.close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "good bye"));
 			} catch (IOException e) {
@@ -325,7 +326,7 @@ public class Endpoint {
                 contractInfo.setExpirationTime(Integer.valueOf(duration));
                 
 
-                //get and wtire send time
+                //get and write send time
                 try {
                     Date sendTime = dateFormatter.parse(dateFormatter.format(new Date(System.currentTimeMillis())));
                     contractInfo.setSendTime(sendTime);
@@ -349,7 +350,7 @@ public class Endpoint {
                     public void run() {
                         //asking binary to 'forget' about stream with 'id'
                         if(subscriptions.contains(id)){
-                            if(session.isOpen() && session != null){
+                            if(session.isOpen()){
                                 session.getAsyncRemote().sendText("{\"forget\": \""+id+"\"}");
                             }
                             
@@ -357,7 +358,6 @@ public class Endpoint {
                             deleteStreamIdFromSet(id);
                             
                             AppServlet.logs.get(threadId).add("---"+threadId+"---Trader " + trader.getName() + " OTPISALS9 OT PRICE PROPOSAL");
-//                            System.out.println("---"+threadId+"---Trader " + trader.getName() + " OTPISALS9 OT PRICE PROPOSAL");
                         }
                     }
                 }, AppServlet.timeToWaitBetterProposal*1000);

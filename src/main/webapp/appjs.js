@@ -557,6 +557,7 @@ function stopTradingProcess(){
             url: 'AppServlet?action=stop',
             success: function(data) {
               console.log(data);
+              writeMessage(data);
             }
         });
 }
