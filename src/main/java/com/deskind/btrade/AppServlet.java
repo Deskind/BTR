@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -88,6 +89,18 @@ public class AppServlet extends HttpServlet {
     //map with logs (every entry contains logs related to particular signal)
     public static HashMap<Integer, ArrayList<String>> logs = new HashMap<Integer, ArrayList<String>>();
     
+    public static synchronized void sendWithShortDelay(TradingSystem tradingSystem, JsonObject jsonToSend) {
+    	Random rand = new Random();
+    	try {
+			Thread.sleep(rand.nextInt((200 - 100) + 1) + 100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	tradingSystem.getSession().getAsyncRemote().sendText(jsonToSend.toString());
+    	
+    }
+    
     //main logic , some kind of request mapping
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -124,9 +137,6 @@ public class AppServlet extends HttpServlet {
             //terminal signal process
             case "go":{
                 
-                
-//                System.out.println("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
-                
 //                http://localhost:8084/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1
 ////              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=5&duration_unit=m&symbol=frxEURUSD&tsName=t1 
 ////              http://127.0.0.2:8080/BTR/AppServlet?action=go&type=PUT&duration=3&duration_unit=m&symbol=frxEURUSD&tsName=ttt
@@ -140,22 +150,26 @@ public class AppServlet extends HttpServlet {
                 final String symbol = req.getParameter("symbol");
                 final String tsName = req.getParameter("tsName");
                 
+                    
+                //variables
+                int threadId = generateThreadId();
+                int intrestedTraders = 0;
                 
-                    
-                    
-                        //variables
-                        int threadId = generateThreadId();
-                        int intrestedTraders = 0;
-                        
-                        //timer for writing logs to file
-                        new Timer().schedule(new LogWriterTimerTask(logs, threadId), timeToWaitBetterProposal*1000 + 5000);
-                        
-                        //add new Entry to 'logs' HashMap
-                        addEntryToLogsMap(threadId);
-                        
-                        logs.get(threadId).add("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
-                        logs.get(threadId).add("---"+threadId+"---POLUCHEN SIGNAL " + new Date().toString() + "TYPE => " + type + "  SYMBOL => " + symbol + "  TS_NAME => " + tsName);
-                        
+                //timer for writing logs to file
+                new Timer().schedule(new LogWriterTimerTask(logs, threadId), timeToWaitBetterProposal*1000 + 5000);
+                
+                //add new Entry to 'logs' HashMap
+                addEntryToLogsMap(threadId);
+                
+                logs.get(threadId).add("YSTANOVLENNAJA MINIMAL'NAJA VbIPLATA = > " + minimalPayout);
+                logs.get(threadId).add("---"+threadId+"---POLUCHEN SIGNAL " + 
+                						new Date().toString() +
+                						" TYPE => " + type + 
+                						" SYMBOL => " + symbol + 
+                						" TS_NAME => " + tsName +
+                						"DURATION => " + duration);
+                
+                
                         //finding interested traders (trading systems)
                         for(Trader trader : traders){                            
                             TradingSystem tradingSystem = trader.getTsByName(tsName);
@@ -187,13 +201,14 @@ public class AppServlet extends HttpServlet {
 	                                jsonToSend.add("passthrough", passthroughObject);
 	                                
 	                                //sending............
-	                                tradingSystem.getSession().getAsyncRemote().sendText(jsonToSend.toString());
+	                                sendWithShortDelay(tradingSystem, jsonToSend);
                             	}
                                 intrestedTraders++;
                             }
                         }
                         
                         logs.get(threadId).add("---"+threadId+"---KOLICHESTVO PODPISOK NA PRICE PROPOSAL = > " + intrestedTraders);
+                        
                 resp.sendRedirect("/BTR");
                 
                 return;
@@ -327,8 +342,12 @@ public class AppServlet extends HttpServlet {
                     for(Trader trader : traders){
                         for(TradingSystem ts : trader.getTsList()){
                             Session session = ts.getSession();
-    						if (session.isOpen()) {
+    						if (session != null) {
     							session.getAsyncRemote().sendText("{\"balance\": 1}");
+    						}
+    						
+    						if(session == null) {
+    							ts.setSession(ts.getLot(), trader.getEndpoint());
     						}
                         } 
                     }
@@ -404,7 +423,9 @@ public class AppServlet extends HttpServlet {
                 traders.remove(i);
                 for(TradingSystem ts : trader.getTsList()) {
                 	try {
-                		ts.getSession().close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "dont-want-to-restart"));
+                		if(ts.getSession() == null) {
+                			ts.getSession().close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "dont-want-to-restart"));
+                		}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}

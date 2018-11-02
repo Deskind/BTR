@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
@@ -283,14 +284,11 @@ public class Endpoint {
         float payout = proposalObject.get("payout").getAsFloat();
         String id = proposalObject.get("id").getAsString();
         
-        forgetPriceProposalStream(id, session, threadId);
-        
         //payout calculation
         float binaryProposedPayout = (payout-askPrice)*100/askPrice;
         
         //log about payout interest
         AppServlet.logs.get(threadId).add("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.getName() + " = > " + binaryProposedPayout);
-//        System.out.println("---"+threadId+"---VbIPLATA BINARY DL9 TREJDERA: "+ trader.getName() + " = > " + binaryProposedPayout);
                
         if(binaryProposedPayout > AppServlet.minimalPayout){//payout is OK
                 
@@ -312,8 +310,17 @@ public class Endpoint {
                 jsonToSend.add("passthrough", passthroughToSendObject);
                 
                 if(session.isOpen() && session != null){
+                	Random rand = new Random();
+                    try {
+						Thread.sleep(rand.nextInt((200 - 100) + 1) + 100);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
                     session.getAsyncRemote().sendText(jsonToSend.toString());
+                    
                 }
+                
+                System.out.println("JUST SEND REQUEST TO BUY CONTRACT");
                 
                 
                 contractInfo.setTraderName(trader.getName());
@@ -337,6 +344,8 @@ public class Endpoint {
                 //add contract info into collection
                 trader.contractsInfoList.add(contractInfo);
                 
+                forgetPriceProposalStream(id, session, threadId);
+
         }
     }
 
