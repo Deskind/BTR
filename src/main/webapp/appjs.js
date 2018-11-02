@@ -51,7 +51,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
+			url: "trader?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
 			success: function (data) {
 	            writeMessage("Запросы отправлены без задержки...");
 	        }
@@ -61,7 +61,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
+			url: "trader?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
 			success: function (data) {
 	            writeMessage("Запросы отправлены без задержки...");
 	        }
@@ -71,7 +71,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
+			url: "trader?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
 			success: function (data) {
 	            writeMessage("Запросы отправлены без задержки...");
 	        }
@@ -81,7 +81,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
+			url: "trader?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
 			success: function (data) {
 	            writeMessage("Запросы отправлены без задержки...");
 	        }
@@ -91,7 +91,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
+			url: "trader?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
 			success: function (data) {
 	            writeMessage("Запросы отправлены без задержки...");
 	        }
@@ -101,7 +101,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
+			url: "trader?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
 			success: function (data) {
 	            writeMessage("Запросы отправлены с задержкой...");
 	        }
@@ -109,7 +109,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
+			url: "trader?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
 			success: function (data) {
 	            writeMessage("Запросы отправлены с задержкой...");
 	        }
@@ -117,7 +117,7 @@ function buy10(howMuchToBuy){
 		
 		$.ajax({
 			cache: false,
-			url: "AppServlet?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
+			url: "trader?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
 			success: function (data) {
 	            writeMessage("Запросы отправлены с задержкой...");
 	        }
@@ -136,7 +136,7 @@ function addNewTrader(token, name){
     //add new data to database
     if(token !== "" && name !== ""){
         $.ajax({
-            url: "AppServlet?action=addTrader&token="+token+"&name="+name,
+            url: "trader?action=addTrader&token="+token+"&name="+name,
             cache: false,
             success: function (data) {
                 var tsList = [];
@@ -163,7 +163,7 @@ function addTsToTrader(token){
    
     if(userInput.value !== ""){
         $.ajax({
-            url: "AppServlet?action=addTsToTrader&token="+token+"&tsName="+userInput.value,
+            url: "trader?action=addTsToTrader&token="+token+"&tsName="+userInput.value,
             cache: false,
             success: function (data) {
                 console.log(data);
@@ -236,7 +236,7 @@ function addNewTradingSystem(name){
             //trying to add new ts to database
             $.ajax({
                 cache: false,
-                url: "AppServlet?action=newTS&name="+name,
+                url: "trader?action=newTS&name="+name,
                 success: function (data) {
                     //case of 'success' response
                     if(data === "success"){
@@ -421,7 +421,7 @@ function plusTs(tsElement, token, tsList){
 function printAllTraders(){
     $.ajax({
         cache: false,
-        url: "AppServlet?action=printAllTraders",
+        url: "trader?action=printAllTraders",
         success: function (data, textStatus, jqXHR) {
             console.log(data);
         },
@@ -434,7 +434,7 @@ function printAllTraders(){
 function changeTraderState(token, isActive){
     $.ajax({
             cache: false,
-            url: 'AppServlet?action=changeTraderState&token='+token+'&isActive='+isActive+'&time='+new Date().getTime(),
+            url: 'trader?action=changeTraderState&token='+token+'&isActive='+isActive+'&time='+new Date().getTime(),
             success: function(data) {
               document.getElementById("result").innerHTML = data;
             }
@@ -444,7 +444,7 @@ function changeTraderState(token, isActive){
 function changeTsState(token, name, stateToSet, liElement){
     $.ajax({
         cache: false,
-        url: 'AppServlet?action=changeTsState&token='+token+'&tsName='+name+'&stateToSet='+stateToSet, 
+        url: 'trader?action=changeTsState&token='+token+'&tsName='+name+'&stateToSet='+stateToSet, 
         success: function (data) {
             if(liElement.style.color === "red"){
                 liElement.style.color = "green";
@@ -464,7 +464,7 @@ function getBalances(){
     console.log("getBalances() call");
     $.ajax({
         cache: false,
-        url: "AppServlet?action=getAllBalances",
+        url: "trader?action=getAllBalances",
         success: function (data, textStatus, jqXHR) {  
             var balance = 0;
             var token = "";
@@ -481,7 +481,7 @@ function getBalances(){
 function test(){
     $.ajax({
         cache: false,
-        url: "AppServlet?action=test"
+        url: "trader?action=test"
     });
 }
 
@@ -491,7 +491,7 @@ function delTraderTs(token, tsName){
     }else{
         $.ajax({
             cache: false,
-            url: 'AppServlet?action=delTraderTs&token='+token+'&tsName='+tsName,
+            url: 'trader?action=delTraderTs&token='+token+'&tsName='+tsName,
             success: function (data, textStatus, jqXHR) {
                 console.log(data);
                 var list = document.getElementById(token+"_traderTsList");
@@ -513,7 +513,7 @@ function delTraderTs(token, tsName){
 function delTrader(token){    
     if(token !== ""){
         $.ajax({
-        url: 'AppServlet?action=delTrader&token='+token,
+        url: 'trader?action=delTrader&token='+token,
         success: function(data) {
             if(data === "success"){
                 writeMessage("Трейдер с токеном удален...");
@@ -526,8 +526,10 @@ function delTrader(token){
             }else{
                 window.alert("Не удалось удалить трейдера ...");
             }
-        }
-    });
+    	}
+        });
+    }else{
+    	window.alert("Токен не может быть пустым");
     }
     
 }
@@ -535,7 +537,7 @@ function delTrader(token){
 function updateTraderTs(token, tsName, lot, active){
     $.ajax({
         cache: false,
-        url: "AppServlet?action=updateTraderTs&token="+token+"&tsName="+tsName+"&lot="+lot+"&active="+active,
+        url: "trader?action=updateTraderTs&token="+token+"&tsName="+tsName+"&lot="+lot+"&active="+active,
         success: function (data, textStatus, jqXHR) {
             console.log(data);
         },
@@ -556,7 +558,7 @@ function showAllTraders(){
     //getting all  trader from database
     $.ajax({
         cache: false,
-        url: 'AppServlet?action=allTraders',
+        url: 'trader?action=allTraders',
         success: function(data) {
             console.log(data);
             for(var i = 0; i < data.length; i++){
@@ -585,7 +587,7 @@ function setBet(token, value){
         window.alert("User with token :" + token + " makes lot : " + value);
         $.ajax({
             cache: false,
-            url: 'AppServlet?action=setLot&token='+token+'&time='+new Date().getTime()+"&bet="+value,
+            url: 'trader?action=setLot&token='+token+'&time='+new Date().getTime()+"&bet="+value,
             success: function(data) {
               document.getElementById("result").innerHTML = data;
             }
@@ -595,7 +597,7 @@ function setBet(token, value){
 function setMinimalPayout(newPayoutValue){
     $.ajax({
             cache: false,
-            url: 'AppServlet?action=setMinimalPayout&payoutValue='+newPayoutValue,
+            url: 'trader?action=setMinimalPayout&payoutValue='+newPayoutValue,
             success: function(data) {
               window.alert("Новый размер выплаты: " + newPayoutValue);
               document.getElementById("payoutInput").value = newPayoutValue;
@@ -607,7 +609,7 @@ function setMinimalPayout(newPayoutValue){
 function sortTraders(){
     console.log("+++Sort traders call...");
     $.ajax({
-        url: 'AppServlet?action=sortTraders',
+        url: 'trader?action=sortTraders',
         cache: false
     });
 }
@@ -623,7 +625,7 @@ function startTradingProcess(){
     console.log(appIDs);
     $.ajax({
             cache: false,
-            url: 'AppServlet?action=start&appIDs='+appIDs,
+            url: 'manager?action=start&appIDs='+appIDs,
             success: function(data) {
               document.getElementById("result").innerHTML = data;
             }
@@ -633,7 +635,7 @@ function startTradingProcess(){
 function stopTradingProcess(){
     $.ajax({
             cache: false,
-            url: 'AppServlet?action=stop',
+            url: 'manager?action=stop',
             success: function(data) {
               console.log(data);
               writeMessage(data);

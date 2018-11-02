@@ -14,6 +14,6 @@ public class MyFormatter extends Formatter {
     @Override
     public String format(LogRecord record) {
         Date date = new Date(record.getMillis());
-        return date.toString()+ "Message : " + record.getMessage();
+        return date.toString()+ "Message : " + record.getMessage() + "\n";
     }
 }

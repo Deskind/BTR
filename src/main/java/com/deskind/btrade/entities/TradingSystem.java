@@ -5,9 +5,10 @@
  */
 package com.deskind.btrade.entities;
 
-import com.deskind.btrade.AppServlet;
+import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.dto.TradingSystemDTO;
-import com.deskind.btrade.utils.Endpoint;
+import com.deskind.btrade.utils.ConnectionPoint;
+import com.deskind.btrade.utils.ConnectionPoint;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -22,6 +23,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
 import javax.websocket.Session;
@@ -48,6 +51,9 @@ public class TradingSystem {
     
     @Transient
     private Session session;
+    
+    @Transient 
+    private ConnectionPoint connectionPoint;
     
     //CONSTRUCTORS
     public TradingSystem() {
@@ -85,7 +91,11 @@ public class TradingSystem {
         this.name = name;
     }
 
-    public void setLot(float lot) {
+    public void setConnectionPoint(ConnectionPoint connectionPoint) {
+		this.connectionPoint = connectionPoint;
+	}
+
+	public void setLot(float lot) {
         this.lot = lot;
     }
 
@@ -93,23 +103,19 @@ public class TradingSystem {
         this.active = active;
     }
     
-    public void setSession(Session session){
-        this.session = session;
-    }
-    
-    public void setSession(final float lot, final Endpoint endpoint) {
-        final String [] appIds = AppServlet.appIDs;
+    public void setSession(final float lot, final ConnectionPoint connectionPoint) {
+        final String [] appIds = ManagerServlet.getBinaryIDs();
         
         Thread thread1 = new Thread(new Runnable() {
             @Override
             public void run() {
                try{
                     if(lot > 0 && lot < 30){
-                        session = ContainerProvider.getWebSocketContainer().connectToServer(endpoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[0]));
+                        session = ContainerProvider.getWebSocketContainer().connectToServer(connectionPoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[0]));
                     }else if(lot >= 30 && lot < 50){
-                        session = ContainerProvider.getWebSocketContainer().connectToServer(endpoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[1]));
+                        session = ContainerProvider.getWebSocketContainer().connectToServer(connectionPoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[1]));
                     }else if(lot >= 50){
-                        session = ContainerProvider.getWebSocketContainer().connectToServer(endpoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[2]));
+                        session = ContainerProvider.getWebSocketContainer().connectToServer(connectionPoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[2]));
                     }
                 } catch (URISyntaxException ex) {
                     Logger.getLogger(TradingSystem.class.getName()).log(Level.SEVERE, null, ex);
@@ -131,12 +137,16 @@ public class TradingSystem {
     }
 
     //GETTERS
-
+    
     public String getName() {
         return name;
     }
 
-    public float getLot() {
+    public ConnectionPoint getConnectionPoint() {
+		return connectionPoint;
+	}
+
+	public float getLot() {
         return lot;
     }
 
@@ -147,5 +157,6 @@ public class TradingSystem {
     public Session getSession() {
         return session;
     }
+
 
 }

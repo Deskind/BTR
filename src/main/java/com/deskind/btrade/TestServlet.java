@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.deskind.btrade.entities.SignalManager;
 import com.deskind.btrade.tasks.SignalsConsumer;
 
 /**
@@ -20,7 +21,7 @@ public class TestServlet extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		Thread t = new SignalsConsumer();
+		Thread t = new SignalsConsumer(SignalManager.getSignalsQueue());
 		t.start();
 	}
 	

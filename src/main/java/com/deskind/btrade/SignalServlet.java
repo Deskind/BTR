@@ -13,18 +13,12 @@ import com.deskind.btrade.entities.SignalManager;
 import com.deskind.btrade.tasks.SignalsConsumer;
 
 /**
- * Servlet implementation class SignalServlet
+ * Servlet process all signals from terminal
  */
-@WebServlet(urlPatterns="/ss")
+@WebServlet(name ="SignalsServlet", urlPatterns= {"/ss"})
 public class SignalServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	
-	
-       
-    
-	/**
-	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
-	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
 		Signal s = new Signal(request.getParameter("type"),
@@ -32,8 +26,11 @@ public class SignalServlet extends HttpServlet {
 				request.getParameter("duration_unit"),
 				request.getParameter("symbol"),
 				request.getParameter("symbol"));
-	
-		SignalManager.addNewSignal(s);
+		
+		//add signal to queue only if 'manager' working now
+		if(ManagerServlet.isWorking()) {
+			SignalManager.addNewSignal(s);
+		}
 		
 	}
 }

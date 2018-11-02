@@ -6,7 +6,6 @@
 package com.deskind.btrade.entities;
 
 import com.deskind.btrade.dto.TraderDTO;
-import com.deskind.btrade.utils.Endpoint;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -35,12 +34,6 @@ public class Trader implements Comparable<Trader>{
     private String token;
     @OneToMany (fetch = FetchType.EAGER, orphanRemoval = true)
     public List<TradingSystem> tsList = new ArrayList<>();
-    
-    @Transient
-    public  boolean authorized = false;
-    
-    @Transient
-    public Endpoint endpoint;
     
     @Transient
     private float balance;
@@ -86,11 +79,6 @@ public class Trader implements Comparable<Trader>{
         return null;
     }
     
-    //SETTERS
-    public void setEndpoint(Endpoint endpoint) {
-        this.endpoint = endpoint;
-    }
-    
     public void setTsList(List<TradingSystem> tsList) {
         this.tsList = tsList;
     }
@@ -99,11 +87,6 @@ public class Trader implements Comparable<Trader>{
         this.balance = balance;
     }
     
-    //GETTERS
-    public Endpoint getEndpoint() {
-        return this.endpoint;
-    }
-
     public String getName() {
         return this.name;
     }
