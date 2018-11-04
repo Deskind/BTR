@@ -21,7 +21,9 @@ public class ConnectionPointsInitializer extends Thread{
 			List<TradingSystem> systems = trader.getTsList();
 			
 			for(TradingSystem tradingSystem : systems) {
-				tradingSystem.setSession(tradingSystem.getLot(), new ConnectionPoint(trader));
+				
+				Thread t = new AuthorizationThread(trader, tradingSystem);
+				t.start();
 			}
 		}
 	}

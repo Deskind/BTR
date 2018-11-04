@@ -5,29 +5,27 @@
  */
 package com.deskind.btrade.entities;
 
-import com.deskind.btrade.ManagerServlet;
-import com.deskind.btrade.dto.TradingSystemDTO;
-import com.deskind.btrade.utils.ConnectionPoint;
-import com.deskind.btrade.utils.ConnectionPoint;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
 import javax.websocket.Session;
+import javax.websocket.CloseReason.CloseCodes;
+
+import com.deskind.btrade.ManagerServlet;
+import com.deskind.btrade.dto.TradingSystemDTO;
+import com.deskind.btrade.utils.ConnectionPoint;
 
 /**
  *
@@ -106,11 +104,8 @@ public class TradingSystem {
     public void setSession(final float lot, final ConnectionPoint connectionPoint) {
         final String [] appIds = ManagerServlet.getBinaryIDs();
         
-        Thread thread1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
                try{
-                    if(lot > 0 && lot < 30){
+                    if(lot >= 0 && lot < 30){
                         session = ContainerProvider.getWebSocketContainer().connectToServer(connectionPoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[0]));
                     }else if(lot >= 30 && lot < 50){
                         session = ContainerProvider.getWebSocketContainer().connectToServer(connectionPoint, new URI("wss://ws.binaryws.com/websockets/v3?app_id="+appIds[1]));
@@ -123,15 +118,7 @@ public class TradingSystem {
                     Logger.getLogger(TradingSystem.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
                     Logger.getLogger(TradingSystem.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-//                if(session != null){
-//                    this.setSession(session);
-//                } 
-                    }
-                });
-        
-        thread1.start();
+                }                    
         
         
     }
@@ -157,6 +144,18 @@ public class TradingSystem {
     public Session getSession() {
         return session;
     }
+
+	public void closeSession() {
+		if(session != null && session.isOpen()) {
+			
+			try {
+				session.close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "Good bye"));
+				session = null;
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
 
 }

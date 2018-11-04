@@ -25,17 +25,7 @@ private List<Trader> traders;
 			List<TradingSystem> systems = trader.getTsList();
 			
 			for(TradingSystem tradingSystem : systems) {
-				Session session = tradingSystem.getSession();
-				if(session != null && session.isOpen()) {
-					try {
-						session.close(new CloseReason(CloseCodes.NORMAL_CLOSURE, "Good bye"));
-						session = null;
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}else {
-					System.out.println("Nothing to close )))");
-				}
+				tradingSystem.closeSession();
 			}
 		}
 	}

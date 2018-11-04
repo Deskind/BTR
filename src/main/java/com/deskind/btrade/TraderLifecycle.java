@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
+import javax.websocket.Session;
 
 import com.deskind.btrade.dto.TraderDTO;
 import com.deskind.btrade.entities.Trader;
@@ -32,6 +33,8 @@ public class TraderLifecycle extends HttpServlet {
     
 	//app traders
 	private static List<Trader> traders;
+	
+	private boolean firstRun = true;
 
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
@@ -117,8 +120,8 @@ public class TraderLifecycle extends HttpServlet {
 
 	/**
 	 * Adding trading system to trader
-	 * @param token
-	 * @param tsName
+	 * @param token Trader's token
+	 * @param tsName New trading system name
 	 * @param response
 	 */
 	private void processAddTs(String token, String tsName, HttpServletResponse response) {
@@ -131,7 +134,6 @@ public class TraderLifecycle extends HttpServlet {
         for(Trader trader : traders){
             if(trader.getToken().equals(token)){
                 trader.tsList.add(ts);
-                ts.setSession(ts.getLot(), new ConnectionPoint(trader));
             }
         }
         
@@ -156,6 +158,8 @@ public class TraderLifecycle extends HttpServlet {
                 for(int k = 0; k < t.tsList.size(); k++){
                     TradingSystem ts = t.getTsList().get(k);
 	                if(ts.getName().equals(tsName)){
+	                    ts.closeSession();
+	                    
 	                    t.getTsList().remove(k);
 	                }
                 }
@@ -194,8 +198,12 @@ public class TraderLifecycle extends HttpServlet {
      * @note Not mess up with 'showAllTraders' method
      */
     private void allTraders(HttpServletResponse resp) {
-    	//remember all traders
-        traders = HibernateUtil.getAllTraders();
+    	
+    	if(firstRun) {
+    		traders = HibernateUtil.getAllTraders();
+    		firstRun = false;
+    	}
+        
         
         //generate DTO for transferring
         List<TraderDTO> tradersAsDTO = new ArrayList<>();
@@ -232,6 +240,14 @@ public class TraderLifecycle extends HttpServlet {
         for(int i = 0; i < traders.size();i++){
             Trader trader = traders.get(i);
             if(trader.getToken().equals(token)){
+            	//if trading systems list is not empty
+            	if(!trader.getTsList().isEmpty()) {
+	            	for(TradingSystem ts : trader.getTsList()) {
+	            		ts.closeSession();
+	            	}
+            	}
+            	
+            	//remove trader from collection
                 traders.remove(i);
             }
         }

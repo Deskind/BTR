@@ -54,7 +54,7 @@ public class HibernateUtil {
         return list;
     }
 
-    public static String addTsToTrader(String token, TradingSystem ts) {
+public static String addTsToTrader(String token, TradingSystem ts) {
         
         Session session = HibernateUtil.getSession();
         Transaction transaction = session.beginTransaction();
@@ -69,6 +69,9 @@ public class HibernateUtil {
             t.tsList.add(ts);
             session.saveOrUpdate(t);
         }else{
+        	//clean up
+            transaction.commit();
+            session.close();
             return "fail";
         }
         
@@ -137,7 +140,6 @@ public class HibernateUtil {
         
         transaction.commit();
         session.close();
-        
         return "fail";
     }
 
@@ -153,7 +155,7 @@ public class HibernateUtil {
             if(ts.getName().equals(tsNameParameter)){
                 
                 trader.tsList.remove(i);
-                session.save(trader);
+                session.saveOrUpdate(trader);
                 
                 transaction.commit();
                 session.close();
@@ -167,13 +169,6 @@ public class HibernateUtil {
         return "fail";
     }
 
-    public static void saveContractInfo(ContractInfo contractInfo) {
-        Session s = getSession();
-        Transaction t = s.beginTransaction();
-        s.save(contractInfo);
-        t.commit();
-        s.close();
-    }
 
     public static void getAllTradingSystems() {
         Session s = getSession();

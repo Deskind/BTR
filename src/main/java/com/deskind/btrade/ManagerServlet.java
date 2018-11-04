@@ -31,7 +31,7 @@ public class ManagerServlet extends HttpServlet {
 
 	private static boolean isWorking = false;
 
-	private Logger logger;
+	private static Logger logger;
 	private FileHandler handler = null;
 	
 	//contains 3 id for different lots
@@ -67,15 +67,15 @@ public class ManagerServlet extends HttpServlet {
 	private String processStopTrading() {
 		if(!isWorking) return "Trading process is not started ...";
 		
-		//closing sessions
-		Thread connectionPointsDestroyer = new ConnectionPointsDestroyer(TraderLifecycle.getTraders());
-		connectionPointsDestroyer.start();
-		
-		//log
-		logger.log(Level.INFO, "Thread signals consumer thread STOPPED...");
-		
 		//flag
 		isWorking = false;
+		
+		signalsConsumer.interrupt();
+		
+		//closing sessions
+		Thread connectionPointsDestroyer = new ConnectionPointsDestroyer(TraderLifecycle.getTraders());
+		connectionPointsDestroyer.setName("+++Connection points destroyer thread");
+		connectionPointsDestroyer.start();
 		
 		return "Trading process stopped ...";
 	}
@@ -103,23 +103,23 @@ public class ManagerServlet extends HttpServlet {
 		
 		//running signals consumer thread
 		signalsConsumer = new SignalsConsumer(SignalManager.getSignalsQueue());
+		signalsConsumer.setName("+++SignalsConsumerThread");
 		signalsConsumer.start();
-		
-		//log
-		logger.log(Level.INFO, "Thread signals consumer thread STARTED...");
-		
+
 		//run ConnectionPointsInitializer thread
 		Thread pointsInitializer = new ConnectionPointsInitializer(tradersList);
+		pointsInitializer.setName("Points Initializer");
 		pointsInitializer.start();
 		
 		try {
-			Thread.sleep(3000);
+			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		
 		//run 'stay alive' thread
 		Thread stayAliveThread = new StayAlive(tradersList);
+		stayAliveThread.setName("+++StayAlive");
 		stayAliveThread.start();
 		
 		return "Trading process started ...";
@@ -159,4 +159,12 @@ public class ManagerServlet extends HttpServlet {
 		return binaryIDs;
 	}
 
+	
+	public static Logger getLogger() {
+		return logger;
+	}
+
+	
+	
+	
 }

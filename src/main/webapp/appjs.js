@@ -169,8 +169,8 @@ function addTsToTrader(token){
                 console.log(data);
                 //if "failure"
                 if(data !== "success"){
-                    writeMessage("Торговая система успешно добавлена");
-                }else{//if "success"
+                    writeMessage("Не удалось добавить торговую систему");
+                }else if(data === "success"){//if "success"
                     //finding list for particular trader
                     var tsListElement = document.getElementById(token+"_traderTsList");
 
@@ -215,6 +215,8 @@ function addTsToTrader(token){
 
                     //clear addTsInput input field
                     document.getElementById(token+"_addTsInput").value = "";
+                    
+                    writeMessage("Торговая система успешно добавлена");
                 }
             }
         });        

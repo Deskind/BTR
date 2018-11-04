@@ -7,8 +7,9 @@ import java.util.List;
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
+import com.deskind.btrade.utils.ConnectionPoint;
 
-public class StayAlive extends Thread{
+public class StayAlive extends Thread {
 	private List<Trader> traders;
 
 	public StayAlive(List<Trader> traders) {
@@ -17,24 +18,40 @@ public class StayAlive extends Thread{
 
 	@Override
 	public void run() {
-		//list for storing trading system
-		List<TradingSystem> systems = new ArrayList<>();
 		
-		//fill 'systems'
-		for(Trader trader : traders) {
-			systems.addAll(trader.getTsList());
+		// fill 'systems'
+		for (Trader trader : traders) {
+			
 		}
-		
-		while(ManagerServlet.isWorking()) {
-			for(TradingSystem ts : systems) {
-				if(ts.getSession() != null) {
-					try {
-						ts.getSession().getBasicRemote().sendText("{\"balance\": 1}");
-					} catch (IOException e) {
-						e.printStackTrace();
+
+		// do while manager servlet works
+		while (ManagerServlet.isWorking()) {
+			for (Trader trader : traders) {
+				//current trader trading systems
+				List<TradingSystem> systems = trader.getTsList();
+				
+				for (TradingSystem ts : systems) {
+					
+					//in case if session already exists
+					if (ts.getSession() != null) {
+						try {
+							ts.getSession().getBasicRemote().sendText("{\"balance\": 1}");
+						} catch (IOException e) {
+//							e.printStackTrace();
+							System.out.println("Requesting ballance, but connection closed");
+						}
+					//in case if session 'null'
+					}else if(ts.getSession() == null){
+						//run thread for authorization
+						Thread t = new AuthorizationThread(trader, ts);
+						t.setName("+++New trader authorization thread");
+						t.start();
 					}
 				}
+				
 			}
+			
+			
 			
 			try {
 				sleep(10000);
@@ -43,6 +60,5 @@ public class StayAlive extends Thread{
 			}
 		}
 	}
-	
-	
+
 }
