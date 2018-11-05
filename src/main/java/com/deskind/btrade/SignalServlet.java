@@ -25,7 +25,7 @@ public class SignalServlet extends HttpServlet {
 				request.getParameter("duration"),
 				request.getParameter("duration_unit"),
 				request.getParameter("symbol"),
-				request.getParameter("symbol"));
+				request.getParameter("tsName"));
 		
 		//add signal to queue only if 'manager' working now
 		if(ManagerServlet.isWorking()) {

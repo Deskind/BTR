@@ -7,6 +7,7 @@ import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 
 import com.deskind.btrade.entities.Trader;
+import com.google.gson.JsonParser;
 
 @ClientEndpoint
 public class ConnectionPoint{
@@ -29,6 +30,19 @@ public class ConnectionPoint{
 	
 	@OnMessage
 	public void messageReceived(String message) {
-		System.out.println(message);
+		//getting message type
+        JsonParser parser = new JsonParser();
+        String messageType = parser.parse(message).getAsJsonObject().get("msg_type").getAsString();
+        
+        switch(messageType){
+        	case "proposal":{
+        		
+        		System.out.println(message);
+        		
+        		return;
+        	}
+        }
+		
+		
 	}
 }

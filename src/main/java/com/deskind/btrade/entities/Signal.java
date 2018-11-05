@@ -26,6 +26,7 @@ public class Signal {
 	}
 
 	public String getType() {
+		type = type.toUpperCase();
 		return type;
 	}
 

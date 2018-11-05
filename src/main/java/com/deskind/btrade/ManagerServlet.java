@@ -102,7 +102,7 @@ public class ManagerServlet extends HttpServlet {
 		isWorking = true;
 		
 		//running signals consumer thread
-		signalsConsumer = new SignalsConsumer(SignalManager.getSignalsQueue());
+		signalsConsumer = new SignalsConsumer(SignalManager.getSignalsQueue(), tradersList);
 		signalsConsumer.setName("+++SignalsConsumerThread");
 		signalsConsumer.start();
 

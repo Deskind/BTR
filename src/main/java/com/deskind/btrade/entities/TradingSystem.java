@@ -25,7 +25,9 @@ import javax.websocket.CloseReason.CloseCodes;
 
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.dto.TradingSystemDTO;
+import com.deskind.btrade.requests.PriceProposalRequest;
 import com.deskind.btrade.utils.ConnectionPoint;
+import com.google.gson.Gson;
 
 /**
  *
@@ -81,7 +83,15 @@ public class TradingSystem {
         return "Im9 ts: " + name + " Lot: " + lot + " Active: " + active;
     }
     
-    
+    public void sendPriceProposalRequest(PriceProposalRequest proposalRequest) {
+    	if(session != null) {
+	    	try {
+				session.getBasicRemote().sendText(new Gson().toJson(proposalRequest));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+    	}
+    }
     
     //SETTERS 
 

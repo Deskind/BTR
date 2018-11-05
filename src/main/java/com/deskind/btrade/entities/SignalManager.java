@@ -3,7 +3,7 @@ package com.deskind.btrade.entities;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class SignalManager {
-	private static int SIGNALS_INITIAL_CAPACITY = 10;
+	private static int SIGNALS_INITIAL_CAPACITY = 30;
 	
 	private static ArrayBlockingQueue<Signal> signalsQueue = new ArrayBlockingQueue<>(SIGNALS_INITIAL_CAPACITY);
 	
