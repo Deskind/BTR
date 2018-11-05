@@ -28,10 +28,11 @@ import logs.MyFormatter;
 @WebServlet(name = "ManagerServlet", urlPatterns = { "/manager" })
 public class ManagerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	private static Logger logger;
 
 	private static boolean isWorking = false;
-
-	private static Logger logger;
+	
+	//file handler for logger
 	private FileHandler handler = null;
 	
 	//contains 3 id for different lots
@@ -39,6 +40,9 @@ public class ManagerServlet extends HttpServlet {
 	
 	//Thread which consumes(process) signals when they come
 	private Thread signalsConsumer;
+	
+	//payout size
+	private static float payout = 65;
 
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
@@ -46,18 +50,23 @@ public class ManagerServlet extends HttpServlet {
 
 		switch (request.getParameter("action")) {
 
-		case "start": {
-			answer = processStartTrading(request.getParameter("appIDs"));
-			response.getWriter().println(answer);
-			return;
-		}
-		
-		case "stop":{
-			answer = processStopTrading();
-			response.getWriter().println(answer);
-			return;
-		}
-
+			case "start": {
+				answer = processStartTrading(request.getParameter("appIDs"));
+				response.getWriter().println(answer);
+				return;
+			}
+			
+			case "stop":{
+				answer = processStopTrading();
+				response.getWriter().println(answer);
+				return;
+			}
+			
+			case "setMinimalPayout": {
+				float minimalPayout = Float.valueOf(request.getParameter("payoutValue"));
+				setPayout(minimalPayout);
+				return;
+			}
 		}
 	}
 	
@@ -162,6 +171,16 @@ public class ManagerServlet extends HttpServlet {
 	
 	public static Logger getLogger() {
 		return logger;
+	}
+
+	public static float getPayout() {
+		return payout;
+	}
+	
+	//SETTERS
+	
+	public static void setPayout(float payout) {
+		ManagerServlet.payout = payout;
 	}
 
 	

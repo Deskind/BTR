@@ -35,19 +35,15 @@
         <input type="button" value="START" onclick="startTradingProcess()" />
         <input type="button" value="STOP" onclick="stopTradingProcess()" /><br><br>
         
-        <input type="button" value="SortTraders" onclick="sortTraders()" />
-        <input type="button" value="allTraders" onclick="printAllTraders()" />
         <br><br>
         <div>
-            <label>Размер выплаты(может быть установлен без остановки сервера)</label>
+            <label>Размер минимальной выплаты</label>
             <input id="payoutInput" style="width: 150px" type="number" min="1" max="100" placeholder="По умолчанию: 65%"/>
             <input id="setPayoutButton" type="button" value="Установить" onclick="setMinimalPayout(document.getElementById('payoutInput').value)" />
         </div>
         <div>
             <h3 id="result"></h3>
         </div><br><br> 
-        <input id="howMuchToBuy" type="number" value="1"/>
-        <input type="button" value="Send 10 request to buy contract" onClick='buy10(document.getElementById("howMuchToBuy").value)'/>   
         <p>yqaRABiBF5dBhqP</p>  
         <p>j5ByZa3s2UkuLKM</p>
         <p>8FPFzZ5nhsbNck3</p>   

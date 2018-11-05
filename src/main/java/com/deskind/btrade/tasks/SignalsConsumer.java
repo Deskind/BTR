@@ -5,10 +5,10 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 
 import com.deskind.btrade.ManagerServlet;
+import com.deskind.btrade.binary.requests.PriceProposalRequest;
 import com.deskind.btrade.entities.Signal;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
-import com.deskind.btrade.requests.PriceProposalRequest;
 
 public class SignalsConsumer extends Thread{
 	private ArrayBlockingQueue<Signal> signals;

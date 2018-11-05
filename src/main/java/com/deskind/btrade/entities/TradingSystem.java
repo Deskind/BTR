@@ -24,8 +24,8 @@ import javax.websocket.Session;
 import javax.websocket.CloseReason.CloseCodes;
 
 import com.deskind.btrade.ManagerServlet;
+import com.deskind.btrade.binary.requests.PriceProposalRequest;
 import com.deskind.btrade.dto.TradingSystemDTO;
-import com.deskind.btrade.requests.PriceProposalRequest;
 import com.deskind.btrade.utils.ConnectionPoint;
 import com.google.gson.Gson;
 

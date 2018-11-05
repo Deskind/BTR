@@ -45,85 +45,6 @@ function showHideTraderData(token){
     }
 }
 
-//command to by contracts (for test)
-function buy10(howMuchToBuy){
-	var currentTime = new Date().getTime();
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
-			success: function (data) {
-	            writeMessage("Запросы отправлены без задержки...");
-	        }
-		});
-		
-//		while (currentTime + 300 >= new Date().getTime()) {}
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t1",
-			success: function (data) {
-	            writeMessage("Запросы отправлены без задержки...");
-	        }
-		});
-		
-//		while (currentTime + 600 >= new Date().getTime()) {}
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=CALL&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
-			success: function (data) {
-	            writeMessage("Запросы отправлены без задержки...");
-	        }
-		});
-		
-//		while (currentTime + 900 >= new Date().getTime()) {}
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=PUT&duration=1&duration_unit=m&symbol=R_50&tsName=t2",
-			success: function (data) {
-	            writeMessage("Запросы отправлены без задержки...");
-	        }
-		});
-		
-//		while (currentTime + 1200 >= new Date().getTime()) {}
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
-			success: function (data) {
-	            writeMessage("Запросы отправлены без задержки...");
-	        }
-		});
-		
-//		while (currentTime + 1500 >= new Date().getTime()) {}
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t1",
-			success: function (data) {
-	            writeMessage("Запросы отправлены с задержкой...");
-	        }
-		});
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=CALL&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
-			success: function (data) {
-	            writeMessage("Запросы отправлены с задержкой...");
-	        }
-		});
-		
-		$.ajax({
-			cache: false,
-			url: "trader?action=go&type=PUT&duration=2&duration_unit=m&symbol=R_50&tsName=t2",
-			success: function (data) {
-	            writeMessage("Запросы отправлены с задержкой...");
-	        }
-		});
-}
-
 function addNewTrader(token, name){
     //check is such trader already exists    
     for(i = 0; i < tokens.length;i++){
@@ -599,7 +520,7 @@ function setBet(token, value){
 function setMinimalPayout(newPayoutValue){
     $.ajax({
             cache: false,
-            url: 'trader?action=setMinimalPayout&payoutValue='+newPayoutValue,
+            url: 'manager?action=setMinimalPayout&payoutValue='+newPayoutValue,
             success: function(data) {
               window.alert("Новый размер выплаты: " + newPayoutValue);
               document.getElementById("payoutInput").value = newPayoutValue;

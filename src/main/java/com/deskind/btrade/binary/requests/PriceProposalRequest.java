@@ -1,4 +1,4 @@
-package com.deskind.btrade.requests;
+package com.deskind.btrade.binary.requests;
 
 public class PriceProposalRequest {
 	private int proposal;
