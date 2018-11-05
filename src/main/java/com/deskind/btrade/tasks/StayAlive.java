@@ -33,7 +33,7 @@ public class StayAlive extends Thread {
 				for (TradingSystem ts : systems) {
 					
 					//in case if session already exists
-					if (ts.getSession() != null) {
+					if (ts.getSession() != null && ts.getSession().isOpen()) {
 						try {
 							ts.getSession().getBasicRemote().sendText("{\"balance\": 1}");
 						} catch (IOException e) {
@@ -41,7 +41,7 @@ public class StayAlive extends Thread {
 							System.out.println("Requesting ballance, but connection closed");
 						}
 					//in case if session 'null'
-					}else if(ts.getSession() == null){
+					}else if(ts.getSession() == null || !ts.getSession().isOpen()){
 						//run thread for authorization
 						Thread t = new AuthorizationThread(trader, ts);
 						t.setName("+++New trader authorization thread");

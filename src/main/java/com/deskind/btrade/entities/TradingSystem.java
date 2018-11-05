@@ -84,7 +84,7 @@ public class TradingSystem {
     }
     
     public void sendPriceProposalRequest(PriceProposalRequest proposalRequest) {
-    	if(session != null) {
+    	if(session != null && session.isOpen()) {
 	    	try {
 				session.getBasicRemote().sendText(new Gson().toJson(proposalRequest));
 			} catch (IOException e) {
