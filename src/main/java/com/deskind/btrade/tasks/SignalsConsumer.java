@@ -25,7 +25,9 @@ public class SignalsConsumer extends Thread{
 		ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer STARTED...");
 		
 		Signal signal = null;
+		
 		String tradingSystemName = null;
+		
 		PriceProposalRequest proposalRequest = null;
 				
 		while(ManagerServlet.isWorking()) {
@@ -38,7 +40,7 @@ public class SignalsConsumer extends Thread{
 				
 				for(Trader trader : traders) {
 					for(TradingSystem tradingSystem : trader.getTsList()) {
-						if(tradingSystem.getName().equals(tradingSystemName)) {
+						if(tradingSystem.getName().equals(tradingSystemName) && tradingSystem.isActive()) {
 							//create price proposal object
 							proposalRequest = new PriceProposalRequest(1,
 												String.valueOf(tradingSystem.getLot()),
@@ -58,6 +60,8 @@ public class SignalsConsumer extends Thread{
 				
 				
 				System.out.println("Consumed signal" + signal.toString());
+				
+				sleep(150);
 			} catch (InterruptedException e) {
 				ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer was interrupted (trading process was stopped)...");
 			}

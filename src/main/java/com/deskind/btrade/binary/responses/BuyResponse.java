@@ -2,6 +2,7 @@ package com.deskind.btrade.binary.responses;
 
 import com.deskind.btrade.binary.objects.Buy;
 import com.deskind.btrade.binary.requests.BuyRequest;
+import com.deskind.btrade.binary.objects.Error;
 
 public class BuyResponse {
 	

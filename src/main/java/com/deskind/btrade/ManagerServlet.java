@@ -17,8 +17,10 @@ import com.deskind.btrade.entities.SignalManager;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.tasks.ConnectionPointsDestroyer;
 import com.deskind.btrade.tasks.ConnectionPointsInitializer;
+import com.deskind.btrade.tasks.ContractsResultsSaver;
 import com.deskind.btrade.tasks.SignalsConsumer;
 import com.deskind.btrade.tasks.StayAlive;
+import com.deskind.btrade.utils.HibernateUtil;
 
 import logs.MyFormatter;
 
@@ -86,6 +88,9 @@ public class ManagerServlet extends HttpServlet {
 		connectionPointsDestroyer.setName("+++Connection points destroyer thread");
 		connectionPointsDestroyer.start();
 		
+		//Hibernate cleanup
+//		HibernateUtil.getSessionFactory().close();
+		
 		return "Trading process stopped ...";
 	}
 
@@ -130,6 +135,11 @@ public class ManagerServlet extends HttpServlet {
 		Thread stayAliveThread = new StayAlive(tradersList);
 		stayAliveThread.setName("+++StayAlive");
 		stayAliveThread.start();
+		
+		//run 'ContractsResultsSaver' thread
+		Thread contractsResultsSaverThread = new ContractsResultsSaver(tradersList);
+		contractsResultsSaverThread.setName("+++ContractsResultsSaverThread");
+		contractsResultsSaverThread.start();
 		
 		return "Trading process started ...";
 	}

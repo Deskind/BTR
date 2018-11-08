@@ -1,6 +1,7 @@
 
 package com.deskind.btrade.utils;
 
+import com.deskind.btrade.binary.objects.ProfitTableEntry;
 import com.deskind.btrade.entities.ContractInfo;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
@@ -177,6 +178,14 @@ public static String addTsToTrader(String token, TradingSystem ts) {
         t.commit();
         s.close();
     }
+
+	public static void saveContract(ProfitTableEntry entry) {
+		Session s = getSession();
+        Transaction t = s.beginTransaction();
+        s.save(entry);
+        t.commit();
+        s.close();
+	}
     
     
 }

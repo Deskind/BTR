@@ -38,7 +38,7 @@ public class StayAlive extends Thread {
 							ts.getSession().getBasicRemote().sendText("{\"balance\": 1}");
 						} catch (IOException e) {
 //							e.printStackTrace();
-							System.out.println("Requesting ballance, but connection closed");
+							System.out.println("+++ Requesting ballance, but connection closed ...");
 						}
 					//in case if session 'null'
 					}else if(ts.getSession() == null || !ts.getSession().isOpen()){

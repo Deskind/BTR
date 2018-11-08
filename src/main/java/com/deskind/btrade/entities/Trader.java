@@ -5,11 +5,11 @@
  */
 package com.deskind.btrade.entities;
 
-import com.deskind.btrade.dto.TraderDTO;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import javax.persistence.CascadeType;
+import java.util.Set;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -18,7 +18,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
-import org.hibernate.mapping.Set;
+
+import com.deskind.btrade.binary.objects.ProfitTableEntry;
+import com.deskind.btrade.dto.TraderDTO;
 
 /**
  *
@@ -38,8 +40,14 @@ public class Trader implements Comparable<Trader>{
     @Transient
     private float balance;
     
+//    @Transient
+//    public List<ContractInfo> contractsInfoList = new ArrayList<>();
+    
+    @Transient 
+    List<ProfitTableEntry> allcontracts = new ArrayList<>();
+    
     @Transient
-    public List<ContractInfo> contractsInfoList = new ArrayList<>();
+    private HashSet<String> contractsIDs = new HashSet<>();
 
     
     //CONSTRUCTORS
@@ -102,8 +110,21 @@ public class Trader implements Comparable<Trader>{
     public float getBalance() {
         return balance;
     }
+    
+    public HashSet<String> getContractsIDs() {
+		return contractsIDs;
+	}
 
-    @Override
+	public void setContractsIDs(HashSet<String> contractsIDs) {
+		this.contractsIDs = contractsIDs;
+	}
+	
+	public synchronized void addNewContractId(String id) {
+		contractsIDs.add(id);
+		System.out.println("+++ Id " + id +" added , Set size is " + contractsIDs.size());
+	}
+
+	@Override
     public int compareTo(Trader trader) {
         float a = 0.0f;
         float b = 0.0f;
@@ -124,4 +145,14 @@ public class Trader implements Comparable<Trader>{
             return -1;
         }
     }
+
+	public synchronized void removeFromIDs(String contractId) {
+		Iterator<String> iterator = contractsIDs.iterator();
+		while (iterator.hasNext()) {
+		    String element = iterator.next();
+		    if (element.equals(contractId)) {
+		        iterator.remove();
+		    }
+		}
+	}
 }

@@ -29,6 +29,16 @@ $(document).ready(function(){
     
 });
 
+function saveContract(){
+	$.ajax({
+		cache: false,
+		url: 'testservlet',
+		success: function(){
+			window.alert("Test servlet responded ...");
+		}
+	});
+}
+
 function showHideTraderData(token){
     var element = document.getElementById(token+"_addTsButton");
     if(element.style.display !== 'none')
