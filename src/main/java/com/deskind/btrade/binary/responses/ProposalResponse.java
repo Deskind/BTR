@@ -1,7 +1,7 @@
 package com.deskind.btrade.binary.responses;
 
 import com.deskind.btrade.binary.objects.Proposal;
-import com.deskind.btrade.binary.passthrough.Passthrough;
+import com.deskind.btrade.binary.passthrough.PassthroughTsName;
 import com.deskind.btrade.binary.requests.PriceProposalRequest;
 import com.deskind.btrade.binary.objects.Error;
 
@@ -10,11 +10,11 @@ public class ProposalResponse {
 	
 	private PriceProposalRequest echo_req;
 	private String msg_type;
-	private Passthrough passthrough;
+	private PassthroughTsName passthrough;
 	private Proposal proposal;
 	private Error error;
 
-	public ProposalResponse(PriceProposalRequest echo_req, String msg_type, Passthrough passthrough, Proposal proposal, Error error) {
+	public ProposalResponse(PriceProposalRequest echo_req, String msg_type, PassthroughTsName passthrough, Proposal proposal, Error error) {
 		this.echo_req = echo_req;
 		this.msg_type = msg_type;
 		this.passthrough = passthrough;
@@ -38,11 +38,11 @@ public class ProposalResponse {
 		this.msg_type = msg_type;
 	}
 
-	public Passthrough getPassthrough() {
+	public PassthroughTsName getPassthroughTsName() {
 		return passthrough;
 	}
 
-	public void setPassthrough(Passthrough passthrough) {
+	public void setPassthroughDateAndTsName(PassthroughTsName passthrough) {
 		this.passthrough = passthrough;
 	}
 

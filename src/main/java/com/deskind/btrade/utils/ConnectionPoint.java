@@ -1,6 +1,7 @@
 package com.deskind.btrade.utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -14,6 +15,7 @@ import javax.websocket.Session;
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.binary.objects.Error;
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
+import com.deskind.btrade.binary.passthrough.PassthroughTsName;
 import com.deskind.btrade.binary.requests.BuyRequest;
 import com.deskind.btrade.binary.responses.BuyResponse;
 import com.deskind.btrade.binary.responses.ProfitTableResponse;
@@ -79,7 +81,7 @@ public class ConnectionPoint{
 		
 		if(isThereErrorInResponse(response.getError())) return;
 		
-		HashSet<String> ids = trader.getContractsIDs();
+		HashMap<String, ContractDetails> contracts = trader.getContracts();
 		
 		ProfitTableEntry [] entries = response.getProfit_table().getTransactions();
 		
@@ -88,9 +90,12 @@ public class ConnectionPoint{
 			
 			String contractId = entry.getContract_id();
 			
-			if(ids.contains(contractId)) {
+			if(contracts.containsKey(contractId)) {
+				ContractDetails details = contracts.get(contractId);
+				
 				entry.setName(trader.getName());
 				entry.setToken(trader.getToken());
+				entry.setTsName(details.getTsName());
 				
 				if(entry.getSell_price() > 0) {
 					entry.setResult("+");
@@ -102,9 +107,7 @@ public class ConnectionPoint{
 				
 				System.out.println("+++ Entry saved to DB ... ");
 				
-				trader.removeFromIDs(contractId);
-				
-				
+				trader.removeFromContracts(contractId);
 			}
 		}
 		
@@ -121,8 +124,24 @@ public class ConnectionPoint{
 		//error check
 		if(isThereErrorInResponse(buyResponse.getError())) return;
 		
-		//put received contract id to collection(set)
-		trader.addNewContractId(buyResponse.getBuy().getContract_id());
+		//collect data from buy response 
+		//array looks like 'PUT_R_50_1.94_1541584530_1541584590_S0P_0'
+		String [] shortCode = buyResponse.getBuy().getShortcode().split("_");
+		
+		//get fourth and fifth element
+		long buyTime = Long.valueOf(shortCode[4]);
+		long sellTime = Long.valueOf(shortCode[5]);
+		
+		//getting trading system name from passthrough
+		String tsName = buyResponse.getPassthrough().getTsName();
+		
+		//contract id for using as a key
+		String contractId = buyResponse.getBuy().getContract_id();
+		
+		//create 'Contract Detail' object for storing in 'Map' collection
+		ContractDetails details = new ContractDetails(buyTime, sellTime, tsName);
+		
+		trader.addNewContract(contractId, details);
 		
 	}
 
@@ -145,8 +164,12 @@ public class ConnectionPoint{
 		//if payout value is sufficient
 		if(payout > ManagerServlet.getPayout()) {
 			System.out.println("Payout is ok");
+			
+			//getting passthrough from price proposal response
+			PassthroughTsName passthrough = proposalResponse.getPassthroughTsName();
+			
 			//create buy request
-			BuyRequest buyRequest = new BuyRequest(proposalResponse.getProposal().getId(), MAX_PRICE_TO_BUY);
+			BuyRequest buyRequest = new BuyRequest(proposalResponse.getProposal().getId(), MAX_PRICE_TO_BUY, passthrough);
 			
 			if(session != null && session.isOpen()) {
 				try {

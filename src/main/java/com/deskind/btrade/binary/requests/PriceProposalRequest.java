@@ -1,5 +1,7 @@
 package com.deskind.btrade.binary.requests;
 
+import com.deskind.btrade.binary.passthrough.PassthroughTsName;
+
 public class PriceProposalRequest {
 	private int proposal;
 	private String amount;
@@ -10,10 +12,10 @@ public class PriceProposalRequest {
 	private String duration_unit;
 	private String symbol;
 	
-	
-	public PriceProposalRequest(int proposal, String amount, String basis, String contract_type,
-			String currency, String duration, String duration_unit, String symbol) {
-		super();
+	private PassthroughTsName passthrough;
+
+	public PriceProposalRequest(int proposal, String amount, String basis, String contract_type, String currency,
+			String duration, String duration_unit, String symbol, PassthroughTsName dateAndTsNamePassthrough) {
 		this.proposal = proposal;
 		this.amount = amount;
 		this.basis = basis;
@@ -22,6 +24,7 @@ public class PriceProposalRequest {
 		this.duration = duration;
 		this.duration_unit = duration_unit;
 		this.symbol = symbol;
+		this.passthrough = dateAndTsNamePassthrough;
 	}
 
 
@@ -101,6 +104,16 @@ public class PriceProposalRequest {
 
 	public void setSymbol(String symbol) {
 		this.symbol = symbol;
+	}
+
+
+	public PassthroughTsName getDateAndTsNamePassthrough() {
+		return passthrough;
+	}
+
+
+	public void setDateAndTsNamePassthrough(PassthroughTsName dateAndTsNamePassthrough) {
+		this.passthrough = dateAndTsNamePassthrough;
 	}
 	
 	

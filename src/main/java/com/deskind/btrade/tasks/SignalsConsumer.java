@@ -5,6 +5,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 
 import com.deskind.btrade.ManagerServlet;
+import com.deskind.btrade.binary.passthrough.PassthroughTsName;
 import com.deskind.btrade.binary.requests.PriceProposalRequest;
 import com.deskind.btrade.entities.Signal;
 import com.deskind.btrade.entities.Trader;
@@ -29,6 +30,9 @@ public class SignalsConsumer extends Thread{
 		String tradingSystemName = null;
 		
 		PriceProposalRequest proposalRequest = null;
+		
+		
+		
 				
 		while(ManagerServlet.isWorking()) {
 
@@ -41,6 +45,9 @@ public class SignalsConsumer extends Thread{
 				for(Trader trader : traders) {
 					for(TradingSystem tradingSystem : trader.getTsList()) {
 						if(tradingSystem.getName().equals(tradingSystemName) && tradingSystem.isActive()) {
+							//create passthrough
+							PassthroughTsName passthroughTsName = new PassthroughTsName(tradingSystem.getName());
+							
 							//create price proposal object
 							proposalRequest = new PriceProposalRequest(1,
 												String.valueOf(tradingSystem.getLot()),
@@ -49,7 +56,8 @@ public class SignalsConsumer extends Thread{
 												"USD",
 												signal.getDuration(),
 												signal.getDurationUnit(),
-												signal.getSymbol());
+												signal.getSymbol(),
+												passthroughTsName);
 							
 							//sending
 							tradingSystem.sendPriceProposalRequest(proposalRequest);

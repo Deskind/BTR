@@ -6,6 +6,7 @@
 package com.deskind.btrade.entities;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -21,6 +22,7 @@ import javax.persistence.Transient;
 
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
 import com.deskind.btrade.dto.TraderDTO;
+import com.deskind.btrade.utils.ContractDetails;
 
 /**
  *
@@ -47,7 +49,7 @@ public class Trader implements Comparable<Trader>{
     List<ProfitTableEntry> allcontracts = new ArrayList<>();
     
     @Transient
-    private HashSet<String> contractsIDs = new HashSet<>();
+    private HashMap<String, ContractDetails> contracts = new HashMap<>();
 
     
     //CONSTRUCTORS
@@ -111,17 +113,17 @@ public class Trader implements Comparable<Trader>{
         return balance;
     }
     
-    public HashSet<String> getContractsIDs() {
-		return contractsIDs;
+    public HashMap<String, ContractDetails> getContracts() {
+		return contracts;
 	}
 
-	public void setContractsIDs(HashSet<String> contractsIDs) {
-		this.contractsIDs = contractsIDs;
+	public void setContracts(HashMap<String, ContractDetails> contracts) {
+		this.contracts = contracts;
 	}
 	
-	public synchronized void addNewContractId(String id) {
-		contractsIDs.add(id);
-		System.out.println("+++ Id " + id +" added , Set size is " + contractsIDs.size());
+	public synchronized void addNewContract(String id, ContractDetails details) {
+		contracts.put(id, details);
+		System.out.println("+++ Id " + id +" added , Set size is " + contracts.size());
 	}
 
 	@Override
@@ -146,13 +148,7 @@ public class Trader implements Comparable<Trader>{
         }
     }
 
-	public synchronized void removeFromIDs(String contractId) {
-		Iterator<String> iterator = contractsIDs.iterator();
-		while (iterator.hasNext()) {
-		    String element = iterator.next();
-		    if (element.equals(contractId)) {
-		        iterator.remove();
-		    }
-		}
+	public synchronized void removeFromContracts(String contractId) {
+		contracts.remove(contractId);
 	}
 }

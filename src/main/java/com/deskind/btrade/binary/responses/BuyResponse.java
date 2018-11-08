@@ -3,6 +3,7 @@ package com.deskind.btrade.binary.responses;
 import com.deskind.btrade.binary.objects.Buy;
 import com.deskind.btrade.binary.requests.BuyRequest;
 import com.deskind.btrade.binary.objects.Error;
+import com.deskind.btrade.binary.passthrough.PassthroughTsName;
 
 public class BuyResponse {
 	
@@ -11,12 +12,16 @@ public class BuyResponse {
 	private String msg_type;
 	private Error error;
 	
-	public BuyResponse(Buy buy, BuyRequest echo_req, String msg_type, Error error) {
+	private PassthroughTsName passthrough;
+
+	public BuyResponse(Buy buy, BuyRequest echo_req, String msg_type, Error error,
+			PassthroughTsName passthrough) {
 		super();
 		this.buy = buy;
 		this.echo_req = echo_req;
 		this.msg_type = msg_type;
 		this.error = error;
+		this.passthrough = passthrough;
 	}
 
 	public Buy getBuy() {
@@ -49,6 +54,14 @@ public class BuyResponse {
 
 	public void setError(Error error) {
 		this.error = error;
+	}
+
+	public PassthroughTsName getPassthrough() {
+		return passthrough;
+	}
+
+	public void setPassthrough(PassthroughTsName passthrough) {
+		this.passthrough = passthrough;
 	}
 	
 	

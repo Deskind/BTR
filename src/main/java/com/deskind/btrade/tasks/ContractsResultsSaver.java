@@ -25,7 +25,7 @@ public class ContractsResultsSaver extends Thread{
 		while(ManagerServlet.isWorking()) {
 			for(Trader trader : traders) {
 				
-				if(!trader.getContractsIDs().isEmpty() && !trader.getTsList().isEmpty()) {
+				if(!trader.getContracts().isEmpty() && !trader.getTsList().isEmpty()) {
 					
 					System.out.println("Need to save contract to database");
 				

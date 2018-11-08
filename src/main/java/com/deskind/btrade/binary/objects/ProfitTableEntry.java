@@ -21,6 +21,7 @@ public class ProfitTableEntry {
     
     private String name;
     private String token;
+    private String tsName;
 	
 	private int app_id;
 	private float buy_price;
@@ -40,13 +41,14 @@ public class ProfitTableEntry {
 	private String transaction_id;
 	private String result;
 
-	public ProfitTableEntry(int id, String name, String token, int app_id, float buy_price, String contract_id,
-			String longcode, float payout, Date purchase_time, float sell_price, Date sell_time, String shortcode,
-			String transaction_id, String result) {
+	public ProfitTableEntry(int id, String name, String token, String tsName, int app_id, float buy_price,
+			String contract_id, String longcode, float payout, Date purchase_time, float sell_price, Date sell_time,
+			String shortcode, String transaction_id, String result) {
 		super();
 		this.id = id;
 		this.name = name;
 		this.token = token;
+		this.tsName = tsName;
 		this.app_id = app_id;
 		this.buy_price = buy_price;
 		this.contract_id = contract_id;
@@ -87,6 +89,16 @@ public class ProfitTableEntry {
 
 	public void setToken(String token) {
 		this.token = token;
+	}
+
+	public String getTsName() {
+		return tsName;
+	}
+
+
+
+	public void setTsName(String tsName) {
+		this.tsName = tsName;
 	}
 
 
