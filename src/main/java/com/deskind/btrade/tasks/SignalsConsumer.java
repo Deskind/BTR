@@ -69,7 +69,7 @@ public class SignalsConsumer extends Thread{
 				
 				System.out.println("Consumed signal" + signal.toString());
 				
-				sleep(150);
+				sleep(400);
 			} catch (InterruptedException e) {
 				ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer was interrupted (trading process was stopped)...");
 			}

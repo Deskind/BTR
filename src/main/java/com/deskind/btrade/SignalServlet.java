@@ -15,7 +15,7 @@ import com.deskind.btrade.tasks.SignalsConsumer;
 /**
  * Servlet process all signals from terminal
  */
-@WebServlet(name ="SignalsServlet", urlPatterns= {"/ss"})
+@WebServlet(name ="SignalsServlet", urlPatterns= {"/ss", "/AppServlet"})
 public class SignalServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	

@@ -41,8 +41,9 @@ public class ConnectionPoint{
 	}
 	
 	@OnClose
-	public void connectionClose(CloseReason closeReason) {
-		System.out.println(trader.getName() + " Offline ..." + closeReason.getReasonPhrase());
+	public void connectionClose(CloseReason reason) {
+		System.out.println("Trader: " + trader.getName() + " OFFLINE. Reason: " + reason.getReasonPhrase() +
+				" Code: " +reason.getCloseCode());
 	}
 	
 	@OnMessage
@@ -79,7 +80,7 @@ public class ConnectionPoint{
 		
 		ProfitTableResponse response = gson.fromJson(message, ProfitTableResponse.class);
 		
-		if(isThereErrorInResponse(response.getError())) return;
+		if(isThereErrorInResponse(response.getError(), "Profit table answer ")) return;
 		
 		HashMap<String, ContractDetails> contracts = trader.getContracts();
 		
@@ -105,9 +106,13 @@ public class ConnectionPoint{
 				
 				HibernateUtil.saveContract(entry);
 				
-				System.out.println("+++ Entry saved to DB ... ");
-				
+				int beforeDelete = contracts.size();
+								
 				trader.removeFromContracts(contractId);
+				
+				int afterDelete = contracts.size();
+				
+				System.out.println("Trader > " + trader.getName() + " map size before > " + beforeDelete + " and after " + afterDelete);
 			}
 		}
 		
@@ -122,7 +127,7 @@ public class ConnectionPoint{
 		BuyResponse buyResponse = gson.fromJson(message, BuyResponse.class);
 		
 		//error check
-		if(isThereErrorInResponse(buyResponse.getError())) return;
+		if(isThereErrorInResponse(buyResponse.getError(), "Buy contract answer ")) return;
 		
 		//collect data from buy response 
 		//array looks like 'PUT_R_50_1.94_1541584530_1541584590_S0P_0'
@@ -157,7 +162,7 @@ public class ConnectionPoint{
 		Error error = proposalResponse.getError();
 		
 		//error check
-		if(isThereErrorInResponse(error)) return;
+		if(isThereErrorInResponse(error, "Price proposal answer ")) return;
 		
 		float payout = calculatePayout(proposalResponse);
 		
@@ -189,14 +194,14 @@ public class ConnectionPoint{
 	 * @param error
 	 * @return
 	 */
-	private boolean isThereErrorInResponse(Error error) {
+	private boolean isThereErrorInResponse(Error error, String who) {
 		if(error == null) {
 			return false;
 		}else {
 			String code = error.getCode();
 			String message = error.getMessage();
 			
-			System.out.println("Price proposal response contains error with code: "  + code + " and message: " + message);
+			System.out.println(who + " contains error with code: "  + code + " and message: " + message);
 			
 			return true;
 		}
