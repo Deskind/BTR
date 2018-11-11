@@ -1,9 +1,12 @@
 package com.deskind.btrade.utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
@@ -127,15 +130,21 @@ public class ConnectionPoint{
 		BuyResponse buyResponse = gson.fromJson(message, BuyResponse.class);
 		
 		//error check
-		if(isThereErrorInResponse(buyResponse.getError(), "Buy contract answer ")) return;
+		if(isThereErrorInResponse(buyResponse.getError(), "Buy contract answer ")) { 
+			new ProfitTableEntry();
+			
+			return;
+		}
 		
 		//collect data from buy response 
 		//array looks like 'PUT_R_50_1.94_1541584530_1541584590_S0P_0'
-		String [] shortCode = buyResponse.getBuy().getShortcode().split("_");
+		String shortCode = buyResponse.getBuy().getShortcode();
 		
-		//get fourth and fifth element
-		long buyTime = Long.valueOf(shortCode[4]);
-		long sellTime = Long.valueOf(shortCode[5]);
+		//extract dates from 'shortcode'
+		List<String> dates = extractDates(shortCode);
+		long buyTime = Long.valueOf(dates.get(0));
+		long sellTime = Long.valueOf(dates.get(1));
+		
 		
 		//getting trading system name from passthrough
 		String tsName = buyResponse.getPassthrough().getTsName();
@@ -219,5 +228,23 @@ public class ConnectionPoint{
 		float payout = Float.valueOf(proposalResponse.getProposal().getPayout());
 		
 		return payout*100/(askPrice*2);
+	}
+	
+	public static List<String> extractDates(String source){
+		String [] sourceAsArr = source.split("_");
+		List<String> elements = Arrays.asList(sourceAsArr);
+		List<String> dates = new ArrayList<>();
+		
+		String pattern = "\\d{10}";
+		
+		for(int i = 0; i < elements.size(); i++) {
+			String element = elements.get(i);
+			
+			if(element.matches(pattern)) {
+				dates.add(element);
+			}
+		}
+		
+		return dates;
 	}
 }

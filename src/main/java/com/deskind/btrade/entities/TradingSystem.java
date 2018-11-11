@@ -8,6 +8,7 @@ package com.deskind.btrade.entities;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,15 +84,6 @@ public class TradingSystem {
         return "Im9 ts: " + name + " Lot: " + lot + " Active: " + active;
     }
     
-    public void sendPriceProposalRequest(PriceProposalRequest proposalRequest) {
-    	if(session != null && session.isOpen()) {
-	    	try {
-				session.getBasicRemote().sendText(new Gson().toJson(proposalRequest));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-    	}
-    }
     
     //SETTERS 
 

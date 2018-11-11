@@ -39,5 +39,6 @@
       <mapping class = "com.deskind.btrade.entities.TradingSystem"/>
       <mapping class = "com.deskind.btrade.entities.ContractInfo"/>
       <mapping class="com.deskind.btrade.binary.objects.ProfitTableEntry"/>
+      <mapping class="com.deskind.btrade.entities.MissedSignal"/>
    </session-factory>
 </hibernate-configuration>

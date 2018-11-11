@@ -30,8 +30,6 @@ public class ContractsResultsSaver extends Thread{
 				
 				if(!traderContracts.isEmpty() && !trader.getTsList().isEmpty()) {
 					
-					System.out.println("Trader " + trader.getName() + " has > " + traderContracts.size() + " contracts");
-					
 					Session session = trader.getTsList().get(0).getSession();
 					
 					for(Map.Entry<String, ContractDetails> entry : traderContracts.entrySet()) {
@@ -57,7 +55,6 @@ public class ContractsResultsSaver extends Thread{
 					}
 				
 				}else {
-					System.out.println("Trader " + trader.getName() + " has NO contracts ");
 				}
 				
 								

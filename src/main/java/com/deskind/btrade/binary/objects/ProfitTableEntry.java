@@ -41,11 +41,10 @@ public class ProfitTableEntry {
 	private String transaction_id;
 	private String result;
 
-	public ProfitTableEntry(int id, String name, String token, String tsName, int app_id, float buy_price,
+	public ProfitTableEntry(String name, String token, String tsName, int app_id, float buy_price,
 			String contract_id, String longcode, float payout, Date purchase_time, float sell_price, Date sell_time,
 			String shortcode, String transaction_id, String result) {
 		super();
-		this.id = id;
 		this.name = name;
 		this.token = token;
 		this.tsName = tsName;

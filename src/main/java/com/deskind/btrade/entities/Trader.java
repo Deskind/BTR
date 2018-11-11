@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -42,14 +44,14 @@ public class Trader implements Comparable<Trader>{
     @Transient
     private float balance;
     
-//    @Transient
-//    public List<ContractInfo> contractsInfoList = new ArrayList<>();
-    
     @Transient 
     List<ProfitTableEntry> allcontracts = new ArrayList<>();
     
     @Transient
     private HashMap<String, ContractDetails> contracts = new HashMap<>();
+    
+    @OneToMany (fetch = FetchType.EAGER, orphanRemoval = true)
+	private List<MissedSignal> missedSignals = new ArrayList<>();
 
     
     //CONSTRUCTORS
@@ -150,5 +152,9 @@ public class Trader implements Comparable<Trader>{
 
 	public synchronized void removeFromContracts(String contractId) {
 		contracts.remove(contractId);
+	}
+
+	public List<MissedSignal> getMissedSignals() {
+		return missedSignals;
 	}
 }
