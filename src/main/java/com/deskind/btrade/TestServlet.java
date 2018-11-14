@@ -13,9 +13,9 @@ import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
-import com.deskind.btrade.entities.SignalManager;
 import com.deskind.btrade.tasks.SignalsConsumer;
 import com.deskind.btrade.utils.HibernateUtil;
+import com.deskind.btrade.utils.SignalManager;
 
 /**
  * Servlet implementation class TestServlet

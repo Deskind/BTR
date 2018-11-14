@@ -13,7 +13,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.deskind.btrade.entities.SignalManager;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.tasks.ConnectionPointsDestroyer;
 import com.deskind.btrade.tasks.ConnectionPointsInitializer;
@@ -21,6 +23,7 @@ import com.deskind.btrade.tasks.ContractsResultsSaver;
 import com.deskind.btrade.tasks.SignalsConsumer;
 import com.deskind.btrade.tasks.StayAlive;
 import com.deskind.btrade.utils.HibernateUtil;
+import com.deskind.btrade.utils.SignalManager;
 
 import logs.MyFormatter;
 
@@ -30,6 +33,9 @@ import logs.MyFormatter;
 @WebServlet(name = "ManagerServlet", urlPatterns = { "/manager" })
 public class ManagerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	
+	private List<Trader> traders;
+	
 	private static Logger logger;
 
 	private static boolean isWorking = false;
@@ -69,6 +75,26 @@ public class ManagerServlet extends HttpServlet {
 				setPayout(minimalPayout);
 				return;
 			}
+			
+			case "savesignal": {
+				Trader trader = traders.get(0);
+				
+				Session session = HibernateUtil.getSession();
+				Transaction transaction = session.beginTransaction();
+				
+				session.saveOrUpdate(trader);
+				
+				transaction.commit();
+				session.close();
+				
+				
+				return;
+			}
+			
+			case "closesession": {
+				traders.get(0).getTsByName("t3").closeSession();
+				return;
+			}
 		}
 	}
 	
@@ -101,12 +127,12 @@ public class ManagerServlet extends HttpServlet {
 	 */
 	private String processStartTrading(String ids) {
 		//getting traders
-		List<Trader> tradersList = TraderLifecycle.getTraders();
+		traders = TraderLifecycle.getTraders();
 		
 		//if trading process already started
 		if(isWorking) return "Trading process already started ...";
 		//if there are no traders
-		if(tradersList == null || tradersList.isEmpty()) return "No traders. (Hint: Reload web browser page)";
+		if(traders == null || traders.isEmpty()) return "No traders. (Hint: Reload web browser page)";
 		
 		//normal flow 
 		//getting app id
@@ -116,12 +142,12 @@ public class ManagerServlet extends HttpServlet {
 		isWorking = true;
 		
 		//running signals consumer thread
-		signalsConsumer = new SignalsConsumer(SignalManager.getSignalsQueue(), tradersList);
+		signalsConsumer = new SignalsConsumer(SignalManager.getSignalsQueue(), traders);
 		signalsConsumer.setName("+++SignalsConsumerThread");
 		signalsConsumer.start();
 
 		//run ConnectionPointsInitializer thread
-		Thread pointsInitializer = new ConnectionPointsInitializer(tradersList);
+		Thread pointsInitializer = new ConnectionPointsInitializer(traders);
 		pointsInitializer.setName("Points Initializer");
 		pointsInitializer.start();
 		
@@ -132,12 +158,12 @@ public class ManagerServlet extends HttpServlet {
 		}
 		
 		//run 'stay alive' thread
-		Thread stayAliveThread = new StayAlive(tradersList);
+		Thread stayAliveThread = new StayAlive(traders);
 		stayAliveThread.setName("+++StayAlive");
 		stayAliveThread.start();
 		
 		//run 'ContractsResultsSaver' thread
-		Thread contractsResultsSaverThread = new ContractsResultsSaver(tradersList);
+		Thread contractsResultsSaverThread = new ContractsResultsSaver(traders);
 		contractsResultsSaverThread.setName("+++ContractsResultsSaverThread");
 		contractsResultsSaverThread.start();
 		

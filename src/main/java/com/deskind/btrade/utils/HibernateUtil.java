@@ -1,18 +1,20 @@
 
 package com.deskind.btrade.utils;
 
-import com.deskind.btrade.binary.objects.ProfitTableEntry;
-import com.deskind.btrade.entities.ContractInfo;
-import com.deskind.btrade.entities.Trader;
-import com.deskind.btrade.entities.TradingSystem;
 import java.util.List;
+
 import org.hibernate.Query;
-import org.hibernate.SessionFactory;
-import org.hibernate.cfg.Configuration;
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
+
+import com.deskind.btrade.binary.objects.ProfitTableEntry;
+import com.deskind.btrade.entities.Signal;
+import com.deskind.btrade.entities.Trader;
+import com.deskind.btrade.entities.TradingSystem;
 
 public class HibernateUtil {
     private static SessionFactory sessionFactory;
@@ -28,7 +30,7 @@ public class HibernateUtil {
         
     }
     
-    //STATIC METHODS
+    //HIBERNATE
     public static SessionFactory getSessionFactory() {
         return sessionFactory;
     }
@@ -37,6 +39,7 @@ public class HibernateUtil {
         return sessionFactory.openSession();
     }
 
+    //TRADER
     public static void saveTrader(Trader trader) {
         Session s = getSession();
         Transaction t = s.beginTransaction();
@@ -55,7 +58,7 @@ public class HibernateUtil {
         return list;
     }
 
-public static String addTsToTrader(String token, TradingSystem ts) {
+	public static String addTsToTrader(String token, TradingSystem ts) {
         
         Session session = HibernateUtil.getSession();
         Transaction transaction = session.beginTransaction();
@@ -170,7 +173,7 @@ public static String addTsToTrader(String token, TradingSystem ts) {
         return "fail";
     }
 
-
+    //TRADING SYSTEM
     public static void getAllTradingSystems() {
         Session s = getSession();
         Transaction t = s.beginTransaction();
@@ -178,7 +181,8 @@ public static String addTsToTrader(String token, TradingSystem ts) {
         t.commit();
         s.close();
     }
-
+    
+    //CONTRACTS
 	public static void saveContract(ProfitTableEntry entry) {
 		Session s = getSession();
         Transaction t = s.beginTransaction();
@@ -187,6 +191,22 @@ public static String addTsToTrader(String token, TradingSystem ts) {
         s.close();
 	}
     
-    
+    //SIGNALS
+	/**
+	 *Use this method to flush updates to trader in database
+	 * @param trader
+	 */
+	public static void updateTrader(Trader trader) {
+		Session session = getSession();
+		Transaction transaction = session.beginTransaction();
+		
+//		Query query = session.createQuery("from trader t where t.name=:traderName");
+//		query.setParameter(1, trader.getName());
+		
+		session.save(trader);
+		
+		transaction.commit();
+		session.close();
+	}
 }
 

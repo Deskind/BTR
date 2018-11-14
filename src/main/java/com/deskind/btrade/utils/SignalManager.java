@@ -1,6 +1,8 @@
-package com.deskind.btrade.entities;
+package com.deskind.btrade.utils;
 
 import java.util.concurrent.ArrayBlockingQueue;
+
+import com.deskind.btrade.entities.Signal;
 
 public class SignalManager {
 	private static int SIGNALS_INITIAL_CAPACITY = 30;

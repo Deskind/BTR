@@ -1,14 +1,51 @@
 package com.deskind.btrade.entities;
 
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.deskind.btrade.enums.SignalStatus;
+
+@Entity
+@Table(name="received_signals")
 public class Signal {
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	private int id;
+	
+	@Column(name = "signal_time")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date date;
+	
+	@Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private SignalStatus status;
+	
+	@Column(name="signal_type")
 	private String type;
 	private String duration;
+	
+	@Column(name="duration_unit")
 	private String durationUnit;
 	private String symbol;
+	
+	@Column(name="ts")
 	private String tsName;
 	
-	public Signal(String type, String duration, String durationUnit, String symbol, String tsName) {
-		super();
+	public Signal() {};
+	
+
+	public Signal(Date date, String type, String duration, String durationUnit, String symbol, String tsName) {
+		this.date = date;
 		this.type = type;
 		this.duration = duration;
 		this.durationUnit = durationUnit;
@@ -23,6 +60,24 @@ public class Signal {
 									+ "duration_unit: %s"
 									+ "symbol: %s"
 									+ "ts_name %s", type, duration, durationUnit, symbol, tsName);
+	}
+	
+	
+	
+	public Date getDate() {
+		return date;
+	}
+
+	public void setDate(Date date) {
+		this.date = date;
+	}
+
+	public SignalStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(SignalStatus status) {
+		this.status = status;
 	}
 
 	public String getType() {

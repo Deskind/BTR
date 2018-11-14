@@ -508,7 +508,7 @@ function showAllTraders(){
                 addTraderToList(token, name, tsList);                
 //                
 //                showHideTraderData(token);
-//
+//				window.alert("Works");
             }
             
         }

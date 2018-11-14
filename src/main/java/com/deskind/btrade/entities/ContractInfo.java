@@ -82,8 +82,12 @@ public class ContractInfo {
         this.iternalId = iternalId;
     }
     
-    
-    //SETTERS
+    public ContractInfo() {
+		super();
+	}
+
+
+	//SETTERS
 
 
     public void setSendTime(Date sendTime) {
