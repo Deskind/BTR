@@ -8,27 +8,30 @@ package com.deskind.btrade.entities;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
 import javax.websocket.Session;
-import javax.websocket.CloseReason.CloseCodes;
 
 import com.deskind.btrade.ManagerServlet;
-import com.deskind.btrade.binary.requests.PriceProposalRequest;
 import com.deskind.btrade.dto.TradingSystemDTO;
 import com.deskind.btrade.utils.ConnectionPoint;
-import com.google.gson.Gson;
 
 /**
  *
@@ -37,7 +40,7 @@ import com.google.gson.Gson;
 @Entity(name = "trading_system")
 public class TradingSystem {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ts_id")
     private int id;
     
@@ -50,6 +53,10 @@ public class TradingSystem {
     @Column (name = "active")
     private boolean active;
     
+    @OneToMany(fetch=FetchType.EAGER, cascade=CascadeType.ALL)
+    @JoinColumn(name="ts_id")
+    private List<LoginMessage> logins;
+    
     @Transient
     private Session session;
     
@@ -58,19 +65,26 @@ public class TradingSystem {
     
     //CONSTRUCTORS
     public TradingSystem() {
+    	logins = new ArrayList<>();
     }
 
     public TradingSystem(String name) {
+    	logins = new ArrayList<>();
         this.name = name;
     }
 
     public TradingSystem(String name, float lot, boolean active) {
+    	logins = new ArrayList<>();
         this.name = name;
         this.lot = lot;
         this.active = active;
     }
     
     //INSTANCE METHODS
+    public void addLoginMessage(LoginMessage message) {
+    	logins.add(message);
+    }
+    
     public TradingSystemDTO toDTO(){
         TradingSystemDTO dto = new TradingSystemDTO();
         dto.setName(this.name);
@@ -131,7 +145,11 @@ public class TradingSystem {
         return name;
     }
 
-    public ConnectionPoint getConnectionPoint() {
+    public List<LoginMessage> getLogins() {
+		return logins;
+	}
+
+	public ConnectionPoint getConnectionPoint() {
 		return connectionPoint;
 	}
 

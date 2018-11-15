@@ -60,6 +60,23 @@ public class ProfitTableEntry {
 		this.transaction_id = transaction_id;
 		this.result = result;
 	}
+	
+	/**
+	 * Constructor for failed to buy contracts
+	 * @param name
+	 * @param token
+	 * @param tsName Trading system name
+	 * @param purchase_time Response time
+	 * @param result Error code and message
+	 */
+	public ProfitTableEntry(String name, String token, String tsName, Date purchase_time, String result) {
+		super();
+		this.name = name;
+		this.token = token;
+		this.tsName = tsName;
+		this.purchase_time = purchase_time;
+		this.result = result;
+	}
 
 
 

@@ -12,11 +12,14 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCode;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
 import com.deskind.btrade.entities.Trader;
+import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.tasks.ConnectionPointsDestroyer;
 import com.deskind.btrade.tasks.ConnectionPointsInitializer;
 import com.deskind.btrade.tasks.ContractsResultsSaver;
@@ -91,8 +94,25 @@ public class ManagerServlet extends HttpServlet {
 				return;
 			}
 			
+			case "savelogin": {
+				Trader trader = traders.get(0);
+				
+				Session session = HibernateUtil.getSession();
+				Transaction transaction = session.beginTransaction();
+				
+				for(TradingSystem ts: trader.getTsList()) {
+					session.saveOrUpdate(ts);
+				}
+				
+				System.out.println("Saving done!");
+				
+				transaction.commit();
+				session.close();
+				return;
+			}
+			
 			case "closesession": {
-				traders.get(0).getTsByName("t3").closeSession();
+				traders.get(0).getTsByName("t3").getSession().close();
 				return;
 			}
 		}

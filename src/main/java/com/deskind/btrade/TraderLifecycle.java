@@ -1,26 +1,17 @@
 package com.deskind.btrade;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.Session;
-
+import com.deskind.btrade.dto.BalanceDTO;
+import com.deskind.btrade.dto.DTOManager;
 import com.deskind.btrade.dto.TraderDTO;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
-import com.deskind.btrade.utils.ConnectionPoint;
 import com.deskind.btrade.utils.HibernateUtil;
 import com.google.gson.Gson;
 
@@ -83,6 +74,17 @@ public class TraderLifecycle extends HttpServlet {
                 processTsUpdate(token, tsName, lot, active, response);
                 
                 return;
+            }
+            
+            case "getAllBalances": {
+            	List<BalanceDTO> balances = DTOManager.getBalances(traders);
+            	
+            	response.setContentType("application/json");
+            	response.setCharacterEncoding("UTF-8");
+                
+            	response.getWriter().write(new Gson().toJson(balances));
+            	
+            	return;
             }
 		}
 	}
@@ -206,14 +208,7 @@ public class TraderLifecycle extends HttpServlet {
         
         
         //generate DTO for transferring
-        List<TraderDTO> tradersAsDTO = new ArrayList<>();
-        for(Trader trader : traders){
-            TraderDTO traderDTO = trader.toDTO();
-            for(TradingSystem tradingSystem : trader.getTsList()){
-                traderDTO.getTsListDTO().add(tradingSystem.toDTO());
-            }
-            tradersAsDTO.add(traderDTO);
-        }
+        List<TraderDTO> tradersAsDTO = DTOManager.getTraders(traders);
         
         //content configuration
         resp.setContentType("application/json");

@@ -3,6 +3,7 @@ package com.deskind.btrade.utils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,28 +24,41 @@ import com.deskind.btrade.binary.requests.BuyRequest;
 import com.deskind.btrade.binary.responses.BuyResponse;
 import com.deskind.btrade.binary.responses.ProfitTableResponse;
 import com.deskind.btrade.binary.responses.ProposalResponse;
+import com.deskind.btrade.entities.LoginMessage;
 import com.deskind.btrade.entities.Trader;
+import com.deskind.btrade.entities.TradingSystem;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 @ClientEndpoint
 public class ConnectionPoint{
 	private static final int MAX_PRICE_TO_BUY = 1000;
 	private Trader trader;
+	private TradingSystem tradingSystem;
 	
-	public ConnectionPoint(Trader trader) {
+	public ConnectionPoint(Trader trader, TradingSystem tradingSystem) {
 		super();
+		this.tradingSystem = tradingSystem;
 		this.trader = trader;
 	}
 
 	@OnOpen
 	public void connectionOpen() {
+		LoginMessage message = new LoginMessage(new Date());
+		tradingSystem.addLoginMessage(message);
+		
 		System.out.println(trader.getName() + " Online ...");
 	}
 	
 	@OnClose
 	public void connectionClose(CloseReason reason) {
+		List<LoginMessage> logins = tradingSystem.getLogins();
+		LoginMessage message = logins.get(logins.size()-1);
+		
+		message.setLogout(new Date());
+		
 		System.out.println("Trader: " + trader.getName() + " OFFLINE. Reason: " + reason.getReasonPhrase() +
 				" Code: " +reason.getCloseCode());
 	}
@@ -68,6 +82,11 @@ public class ConnectionPoint{
         	
         	case "profit_table": {
         		processProfitTable(message);
+        		return;
+        	}
+        	
+        	case "balance": {
+        		processBalance(message, parser);
         		return;
         	}
         }
@@ -129,10 +148,28 @@ public class ConnectionPoint{
 		Gson gson = new Gson();
 		BuyResponse buyResponse = gson.fromJson(message, BuyResponse.class);
 		
+		//getting trading system name from passthrough
+		String tsName = buyResponse.getPassthrough().getTsName();
+		
+		Error error = buyResponse.getError();
+		
 		//error check
-		if(isThereErrorInResponse(buyResponse.getError(), "Buy contract answer ")) { 
-			new ProfitTableEntry();
+		if(error != null) { 
+			String errorCode = error.getCode();
+			String errorMessage = error.getMessage();
 			
+			String entryMessage = String.format("Error code: %s and message: %s", errorCode, errorMessage);
+			
+			ProfitTableEntry entry = new ProfitTableEntry(trader.getName(),
+															trader.getToken(),
+															tsName,
+															new Date(),
+															entryMessage
+															);
+			
+			trader.addFailedContract(entry);
+			
+			//RETURN POINT
 			return;
 		}
 		
@@ -144,10 +181,6 @@ public class ConnectionPoint{
 		List<String> dates = extractDates(shortCode);
 		long buyTime = Long.valueOf(dates.get(0));
 		long sellTime = Long.valueOf(dates.get(1));
-		
-		
-		//getting trading system name from passthrough
-		String tsName = buyResponse.getPassthrough().getTsName();
 		
 		//contract id for using as a key
 		String contractId = buyResponse.getBuy().getContract_id();
@@ -196,6 +229,21 @@ public class ConnectionPoint{
 			System.out.println("Payout is too low");
 		}
 		return;
+	}
+	
+	/**
+	 * Process balance message 
+	 * @param message
+	 */
+	public void processBalance(String message, JsonParser parser) {
+		float balance = 0;
+		
+		JsonElement root = parser.parse(message);
+		JsonElement balanceElement = root.getAsJsonObject().get("balance");
+		if(balanceElement != null) {
+			balance = balanceElement.getAsJsonObject().get("balance").getAsFloat();
+			trader.setBalance(balance);
+		}
 	}
 	
 	/**

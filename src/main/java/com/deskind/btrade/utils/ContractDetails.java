@@ -6,7 +6,6 @@ public class ContractDetails {
 	private String tsName;
 	
 	public ContractDetails(long buyTime, long sellTime, String tsName) {
-		super();
 		this.buyTime = buyTime;
 		this.sellTime = sellTime;
 		this.tsName = tsName;

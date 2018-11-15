@@ -10,6 +10,8 @@ import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.utils.ConnectionPoint;
 
 public class StayAlive extends Thread {
+	private final int SLEEP_TIME = 55555;
+	
 	private List<Trader> traders;
 
 	public StayAlive(List<Trader> traders) {
@@ -18,16 +20,10 @@ public class StayAlive extends Thread {
 
 	@Override
 	public void run() {
-		
-		// fill 'systems'
-		for (Trader trader : traders) {
-			
-		}
 
 		// do while manager servlet works
 		while (ManagerServlet.isWorking()) {
 			for (Trader trader : traders) {
-				//current trader trading systems
 				List<TradingSystem> systems = trader.getTsList();
 				
 				for (TradingSystem ts : systems) {
@@ -50,11 +46,8 @@ public class StayAlive extends Thread {
 				}
 				
 			}
-			
-			
-			
 			try {
-				sleep(55555);
+				sleep(SLEEP_TIME);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

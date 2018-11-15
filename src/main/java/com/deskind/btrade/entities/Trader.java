@@ -45,6 +45,7 @@ public class Trader implements Comparable<Trader>{
     private String token;
     
     @OneToMany (fetch = FetchType.EAGER, cascade=CascadeType.ALL)
+    @JoinColumn(name="trader_id")
     public List<TradingSystem> tsList;
 
     @OneToMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
@@ -56,14 +57,17 @@ public class Trader implements Comparable<Trader>{
     @Transient
     private float balance;
     
-    @Transient 
-    List<ProfitTableEntry> allcontracts = new ArrayList<>();
-    
+    /*
+     * Contains Profit Table Entries only with !!!SUCCESSFULLY!!! bought contracts
+     */
     @Transient
     private HashMap<String, ContractDetails> contracts = new HashMap<>();
     
-    
-
+    /*
+     * Contains Profit Table Entries only with !!!FAILED!!! to bought contracts
+     */
+    @Transient 
+    private List<ProfitTableEntry> failedToBuy = new ArrayList<>();
     
     //CONSTRUCTORS
     public Trader(){
@@ -72,6 +76,8 @@ public class Trader implements Comparable<Trader>{
     }
     
     public Trader(String name, String token){
+    	tsList = new ArrayList<>();
+    	receivedSignals = new ArrayList<>();
         this.name = name;
         this.token = token;
     }
@@ -116,6 +122,10 @@ public class Trader implements Comparable<Trader>{
         }else{
             return -1;
         }
+    }
+    
+    public void addFailedContract(ProfitTableEntry entry) {
+    	failedToBuy.add(entry);
     }
     
 	public void setContracts(HashMap<String, ContractDetails> contracts) {
@@ -182,4 +192,14 @@ public class Trader implements Comparable<Trader>{
 		return contracts;
 	}
 
+	public List<ProfitTableEntry> getFailedToBuy() {
+		return failedToBuy;
+	}
+
+	public void setFailedToBuy(List<ProfitTableEntry> failedToBuy) {
+		this.failedToBuy = failedToBuy;
+	}
+
+    
+    
 }

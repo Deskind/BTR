@@ -8,12 +8,15 @@ import java.util.Map;
 import javax.websocket.Session;
 
 import com.deskind.btrade.ManagerServlet;
+import com.deskind.btrade.binary.objects.ProfitTableEntry;
 import com.deskind.btrade.binary.requests.ProfitTableRequest;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.utils.ContractDetails;
+import com.deskind.btrade.utils.HibernateUtil;
 import com.google.gson.Gson;
 
 public class ContractsResultsSaver extends Thread{
+	private static final int SLEEP_TIME = 5555;
 	private static final int TIME_OFFSET = 10;
 	private List<Trader> traders;
 
@@ -53,19 +56,23 @@ public class ContractsResultsSaver extends Thread{
 							}
 						}
 					}
-				
-				}else {
 				}
 				
-								
+				//check out failed to buy contracts
+				List<ProfitTableEntry> failedToBuy = trader.getFailedToBuy();
+				for(ProfitTableEntry entry : failedToBuy) {
+					HibernateUtil.saveContract(entry);
+				}
+				
+				//clear failed to buy contracts
+				failedToBuy.clear();
+				
 				try {
-					sleep(7777);
+					sleep(SLEEP_TIME);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
 		}
 	}
-	
-	
 }

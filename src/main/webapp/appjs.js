@@ -7,7 +7,7 @@ var tradingSystems = [];
 
 window.setInterval(function(){
     getBalances();
-}, 120000);
+}, 65000);
 
 $(document).ready(function(){
     ul = document.getElementById("traders_list");

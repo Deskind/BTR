@@ -22,7 +22,7 @@ public class AuthorizationThread extends Thread{
 	public void run() {
 		
 		//create endpoint
-		tradingSystem.setSession(tradingSystem.getLot(), new ConnectionPoint(trader));
+		tradingSystem.setSession(tradingSystem.getLot(), new ConnectionPoint(trader, tradingSystem));
 		
 		
 		//wait a little until connection process will be done

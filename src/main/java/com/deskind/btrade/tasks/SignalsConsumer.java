@@ -15,10 +15,12 @@ import com.deskind.btrade.entities.Signal;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.enums.SignalStatus;
-import com.deskind.btrade.utils.HibernateUtil;
 import com.google.gson.Gson;
 
 public class SignalsConsumer extends Thread{
+	private String CONTRACT_BASIS = "stake";
+	private String CURRENCY = "USD";
+	
 	private ArrayBlockingQueue<Signal> signals;
 	private List<Trader> traders;
 	
@@ -32,12 +34,8 @@ public class SignalsConsumer extends Thread{
 		//log
 		ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer STARTED...");
 		
-		
 		PriceProposalRequest proposalRequest = null;
-		
-		
-		
-				
+
 		while(ManagerServlet.isWorking()) {
 
 			try {
@@ -49,9 +47,6 @@ public class SignalsConsumer extends Thread{
 				
 				//iterate over traders to find 'interested' traders
 				for(Trader trader : traders) {
-					
-					
-					
 					for(TradingSystem tradingSystem : trader.getTsList()) {
 						if(tradingSystem.getName().equals(tradingSystemName) && tradingSystem.isActive()) {
 							Session session = tradingSystem.getSession();
@@ -62,19 +57,18 @@ public class SignalsConsumer extends Thread{
 							//create price proposal object
 							proposalRequest = new PriceProposalRequest(1,
 												String.valueOf(tradingSystem.getLot()),
-												"stake",
+												CONTRACT_BASIS,
 												signal.getType(),
-												"USD",
+												CURRENCY,
 												signal.getDuration(),
 												signal.getDurationUnit(),
 												signal.getSymbol(),
 												passthroughTsName);
-							
-							
-							
+
 							if(session != null && session.isOpen()) {
 						    	try {
 									session.getBasicRemote().sendText(new Gson().toJson(proposalRequest));
+									//saving received signal
 									trader.addReceivedSignal(signal, SignalStatus.RECEIVED);
 								} catch (IOException e) {
 									e.printStackTrace();
