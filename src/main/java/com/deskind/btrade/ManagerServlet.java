@@ -2,9 +2,7 @@ package com.deskind.btrade;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
@@ -12,8 +10,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.websocket.CloseReason;
-import javax.websocket.CloseReason.CloseCode;
 
 import org.hibernate.Session;
 import org.hibernate.Transaction;
@@ -79,35 +75,39 @@ public class ManagerServlet extends HttpServlet {
 				return;
 			}
 			
-			case "savesignal": {
-				Trader trader = traders.get(0);
+			case "saveReceivedSignals": {
 				
 				Session session = HibernateUtil.getSession();
 				Transaction transaction = session.beginTransaction();
 				
-				session.saveOrUpdate(trader);
+				for(Trader trader : traders) {
+					session.saveOrUpdate(trader);
+				}
 				
 				transaction.commit();
 				session.close();
 				
-				
+				response.getWriter().println("Received signals saved");
 				return;
 			}
 			
-			case "savelogin": {
-				Trader trader = traders.get(0);
+			case "saveLogins": {
 				
 				Session session = HibernateUtil.getSession();
 				Transaction transaction = session.beginTransaction();
 				
-				for(TradingSystem ts: trader.getTsList()) {
-					session.saveOrUpdate(ts);
+				for(Trader trader : traders) {
+					for(TradingSystem ts: trader.getTsList()) {
+						session.saveOrUpdate(ts);
+					}
 				}
 				
-				System.out.println("Saving done!");
+				System.out.println("Logins saved!");
 				
 				transaction.commit();
 				session.close();
+				
+				response.getWriter().println("Logins saved");
 				return;
 			}
 			

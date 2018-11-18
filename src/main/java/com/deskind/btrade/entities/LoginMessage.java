@@ -11,6 +11,10 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+/**
+ * @author deski
+ *
+ */
 @Entity
 @Table(name="logins")
 public class LoginMessage {
@@ -26,6 +30,12 @@ public class LoginMessage {
 	@Column(name = "logout_time")
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date logout;
+	
+	@Column(name = "close_code")
+	private String closeCode;
+	
+	@Column(name = "close_message")
+	private String closeMessage;
 
 	public LoginMessage() {	}
 
@@ -47,6 +57,22 @@ public class LoginMessage {
 
 	public void setLogout(Date logout) {
 		this.logout = logout;
+	}
+
+	public String getCloseCode() {
+		return closeCode;
+	}
+
+	public void setCloseCode(String closeCode) {
+		this.closeCode = closeCode;
+	}
+
+	public String getCloseMessage() {
+		return closeMessage;
+	}
+
+	public void setCloseMessage(String closeMessage) {
+		this.closeMessage = closeMessage;
 	}
 	
 	

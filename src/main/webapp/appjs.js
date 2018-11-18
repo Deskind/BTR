@@ -17,24 +17,34 @@ $(document).ready(function(){
         getBalances();
     }, 20000);
     
-//    $("#newTraderToggleDiv, #tradersListToggleDiv").hide();
-//    
-//    $("#newTraderToggle").click(function(){
-//        $("#newTraderToggleDiv").toggle();
-//    });
-//    
-//    $("#tradersListToggle").click(function(){
-//        $("#tradersListToggleDiv").toggle();
-//    });
+    $("#newTraderToggleDiv, #tradersListToggleDiv").hide();
+    
+    $("#newTraderToggle").click(function(){
+        $("#newTraderToggleDiv").toggle();
+    });
+    
+    $("#tradersListToggle").click(function(){
+        $("#tradersListToggleDiv").toggle();
+    });
     
 });
 
-function saveContract(){
+function saveLogins(){
 	$.ajax({
 		cache: false,
-		url: 'testservlet',
-		success: function(){
-			window.alert("Test servlet responded ...");
+		url: 'manager?action=saveLogins',
+		success: function(data){
+			window.alert(data);
+		}
+	});
+}
+
+function saveReceivedSignals(){
+	$.ajax({
+		cache: false,
+		url: 'manager?action=saveReceivedSignals',
+		success: function(data){
+			window.alert(data);
 		}
 	});
 }

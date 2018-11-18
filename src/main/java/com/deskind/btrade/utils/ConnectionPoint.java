@@ -5,17 +5,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-
 import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
 import javax.websocket.OnClose;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
-
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.binary.objects.Error;
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
@@ -55,9 +51,18 @@ public class ConnectionPoint{
 	@OnClose
 	public void connectionClose(CloseReason reason) {
 		List<LoginMessage> logins = tradingSystem.getLogins();
+		
+		//last message
 		LoginMessage message = logins.get(logins.size()-1);
 		
+		//set date
 		message.setLogout(new Date());
+		
+		//set code
+		message.setCloseCode(reason.getCloseCode().toString());
+		
+		//set message
+		message.setCloseMessage(reason.getReasonPhrase());
 		
 		System.out.println("Trader: " + trader.getName() + " OFFLINE. Reason: " + reason.getReasonPhrase() +
 				" Code: " +reason.getCloseCode());
@@ -210,7 +215,6 @@ public class ConnectionPoint{
 		
 		//if payout value is sufficient
 		if(payout > ManagerServlet.getPayout()) {
-			System.out.println("Payout is ok");
 			
 			//getting passthrough from price proposal response
 			PassthroughTsName passthrough = proposalResponse.getPassthroughTsName();

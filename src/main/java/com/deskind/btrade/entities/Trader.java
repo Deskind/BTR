@@ -134,15 +134,12 @@ public class Trader implements Comparable<Trader>{
 	
 	public synchronized void addNewContract(String id, ContractDetails details) {
 		contracts.put(id, details);
-		System.out.println("+++ Id " + id +" added , Set size is " + contracts.size());
 	}
 
 	public void addReceivedSignal(Signal signal, SignalStatus status) {
 		signal.setStatus(status);
 		
 		receivedSignals.add(signal);
-		
-		System.out.println("Signal added to signals ... ");
 	}
 
 	public synchronized void removeFromContracts(String contractId) {

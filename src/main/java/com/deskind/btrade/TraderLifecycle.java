@@ -77,12 +77,14 @@ public class TraderLifecycle extends HttpServlet {
             }
             
             case "getAllBalances": {
-            	List<BalanceDTO> balances = DTOManager.getBalances(traders);
-            	
-            	response.setContentType("application/json");
-            	response.setCharacterEncoding("UTF-8");
-                
-            	response.getWriter().write(new Gson().toJson(balances));
+            	if(ManagerServlet.isWorking()) {
+            		List<BalanceDTO> balances = DTOManager.getBalances(traders);
+            		
+            		response.setContentType("application/json");
+                	response.setCharacterEncoding("UTF-8");
+                    
+                	response.getWriter().write(new Gson().toJson(balances));
+            	}
             	
             	return;
             }

@@ -1,13 +1,11 @@
 package com.deskind.btrade.tasks;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
-import com.deskind.btrade.utils.ConnectionPoint;
 
 public class StayAlive extends Thread {
 	private final int SLEEP_TIME = 55555;

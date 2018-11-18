@@ -18,7 +18,6 @@ public class SignalManager {
 			e.printStackTrace();
 		}
 		
-		System.out.println("Signal added to queue " + signal.toString());
 	}
 	
 	public static String printSignalsQueue() {
