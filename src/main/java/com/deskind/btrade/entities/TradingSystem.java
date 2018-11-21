@@ -55,7 +55,11 @@ public class TradingSystem {
     
     @OneToMany(fetch=FetchType.EAGER, cascade=CascadeType.ALL)
     @JoinColumn(name="ts_id")
-    private List<LoginMessage> logins;
+    private List<LoginMessage> logins = new ArrayList<>();;
+    
+    @OneToMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
+    @JoinColumn(name="ts_id")
+    private List<ProposalResponceLog> proposalLogs = new ArrayList<>();;
     
     @Transient
     private Session session;
@@ -65,7 +69,7 @@ public class TradingSystem {
     
     //CONSTRUCTORS
     public TradingSystem() {
-    	logins = new ArrayList<>();
+    	
     }
 
     public TradingSystem(String name) {
@@ -98,6 +102,10 @@ public class TradingSystem {
         return "Im9 ts: " + name + " Lot: " + lot + " Active: " + active;
     }
     
+    //INSTANCE METHODS
+    public void addProposalLog(ProposalResponceLog log) {
+		proposalLogs.add(log);
+	}
     
     //SETTERS 
 
@@ -140,12 +148,15 @@ public class TradingSystem {
     }
 
     //GETTERS
-    
     public String getName() {
         return name;
     }
 
-    public List<LoginMessage> getLogins() {
+    public List<ProposalResponceLog> getProposalLogs() {
+		return proposalLogs;
+	}
+
+	public List<LoginMessage> getLogins() {
 		return logins;
 	}
 

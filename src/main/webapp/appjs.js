@@ -29,20 +29,20 @@ $(document).ready(function(){
     
 });
 
-function saveLogins(){
+function saveLogs(){
 	$.ajax({
 		cache: false,
-		url: 'manager?action=saveLogins',
+		url: 'manager?action=saveLogs',
 		success: function(data){
 			window.alert(data);
 		}
 	});
 }
 
-function saveReceivedSignals(){
+function deleteLogs(){
 	$.ajax({
 		cache: false,
-		url: 'manager?action=saveReceivedSignals',
+		url: 'manager?action=deleteLogs',
 		success: function(data){
 			window.alert(data);
 		}

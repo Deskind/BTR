@@ -14,6 +14,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import com.deskind.btrade.entities.LoginMessage;
+import com.deskind.btrade.entities.ProposalResponceLog;
+import com.deskind.btrade.entities.Signal;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
 import com.deskind.btrade.tasks.ConnectionPointsDestroyer;
@@ -75,42 +78,35 @@ public class ManagerServlet extends HttpServlet {
 				return;
 			}
 			
-			case "saveReceivedSignals": {
+			case "saveLogs": {
 				
+				saveTraderLogs();
+				
+				saveTradingSystemLogs();
+				
+				response.getWriter().println("Logs saved");
+				return;
+			}
+			
+			case "deleteLogs": {
 				Session session = HibernateUtil.getSession();
 				Transaction transaction = session.beginTransaction();
 				
-				for(Trader trader : traders) {
-					session.saveOrUpdate(trader);
-				}
+				clearSignals(session);
+				
+				clearLogins(session);
+
+				clearProposal(session);	
 				
 				transaction.commit();
 				session.close();
 				
-				response.getWriter().println("Received signals saved");
+				response.getWriter().println("Logs deleted");
+				
 				return;
 			}
 			
-			case "saveLogins": {
-				
-				Session session = HibernateUtil.getSession();
-				Transaction transaction = session.beginTransaction();
-				
-				for(Trader trader : traders) {
-					for(TradingSystem ts: trader.getTsList()) {
-						session.saveOrUpdate(ts);
-					}
-				}
-				
-				System.out.println("Logins saved!");
-				
-				transaction.commit();
-				session.close();
-				
-				response.getWriter().println("Logins saved");
-				return;
-			}
-			
+			//for test purposes
 			case "closesession": {
 				traders.get(0).getTsByName("t3").getSession().close();
 				return;
@@ -118,6 +114,82 @@ public class ManagerServlet extends HttpServlet {
 		}
 	}
 	
+	private void saveTradingSystemLogs() {
+		Session session = HibernateUtil.getSession();
+		Transaction transaction = session.beginTransaction();
+
+		for(Trader trader : traders) {
+			for(TradingSystem ts: trader.getTsList()) {
+				if(ts.getLogins().size() != 0 && ts.getProposalLogs().size() != 0) {
+					session.update(ts);
+				}
+			}
+		}
+		
+		transaction.commit();
+		session.close();
+		
+	}
+
+	private void saveTraderLogs() {
+		for(Trader trader : traders) {
+			HibernateUtil.updateTraderLogs(trader);
+		}
+	}
+
+	private void clearProposal(Session session) {
+		for(Trader trader : traders) {
+			List<TradingSystem> tsList = trader.getTsList();
+			
+			for(TradingSystem ts: tsList) {
+				List<ProposalResponceLog> proposalLogs = ts.getProposalLogs();
+				
+				for(ProposalResponceLog responceLog: proposalLogs) {
+					session.delete(responceLog);
+				}
+				
+				proposalLogs.clear();
+				
+				session.saveOrUpdate(trader);
+			}
+		}
+	}
+
+	private void clearLogins(Session session) {
+		for(Trader trader : traders) {
+			List<TradingSystem> tsList = trader.getTsList();
+			
+			for(TradingSystem ts: tsList) {
+				List<LoginMessage> logins = ts.getLogins();
+				
+				for(LoginMessage loginMessage: logins) {
+					session.delete(loginMessage);
+				}
+				
+				logins.clear();
+				
+				session.saveOrUpdate(trader);
+			}
+		}
+		
+	}
+
+	private void clearSignals(Session session) {
+		
+		for(Trader trader : traders) {
+			//clean received signals
+			List<Signal> signals = trader.getReceivedSignals();
+			
+			for(Signal signal : signals) {
+				session.delete(signal);
+			}
+			
+			signals.clear();
+			
+			session.saveOrUpdate(trader);
+		}
+	}
+
 	/**
 	 * Method for stopping trading process
 	 */
@@ -136,6 +208,9 @@ public class ManagerServlet extends HttpServlet {
 		
 		//Hibernate cleanup
 //		HibernateUtil.getSessionFactory().close();
+		
+		//clear queue
+		SignalManager.getSignalsQueue().clear();
 		
 		return "Trading process stopped ...";
 	}

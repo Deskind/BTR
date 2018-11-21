@@ -2,6 +2,7 @@ package com.deskind.btrade.tasks;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -29,13 +30,16 @@ public class ContractsResultsSaver extends Thread{
 	public void run() {
 		while(ManagerServlet.isWorking()) {
 			for(Trader trader : traders) {
+				String name = trader.getName();
+				
 				Map<String, ContractDetails> traderContracts = trader.getContracts();
 				
 				if(!traderContracts.isEmpty() && !trader.getTsList().isEmpty()) {
 					
 					Session session = trader.getTsList().get(0).getSession();
 					
-					for(Map.Entry<String, ContractDetails> entry : traderContracts.entrySet()) {
+					for(Iterator<Map.Entry<String, ContractDetails>> it = traderContracts.entrySet().iterator(); it.hasNext(); ) {
+						Map.Entry<String, ContractDetails> entry = it.next();
 						ContractDetails details = entry.getValue();
 						
 						long dateFrom = details.getBuyTime() - TIME_OFFSET;
@@ -54,7 +58,13 @@ public class ContractsResultsSaver extends Thread{
 									e.printStackTrace();
 								}
 							}
+							
+							//only one contract will be processed 
+							break;
 						}
+							
+						
+						
 					}
 				}
 				
@@ -66,12 +76,12 @@ public class ContractsResultsSaver extends Thread{
 				
 				//clear failed to buy contracts
 				failedToBuy.clear();
-				
-				try {
-					sleep(SLEEP_TIME);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+			}
+			
+			try {
+				sleep(SLEEP_TIME);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
 	}

@@ -30,7 +30,8 @@
         update
       </property>
       
-      <property name="hibernate.current_session_context_class">thread</property>
+      <!--hibernate.cfg.xml -->
+	  <!-- property name="show_sql">true</property> -->
       
       <property name="connection.autoReconnect">true</property>
       <property name="connection.autoReconnectForPools">true</property>
@@ -43,6 +44,7 @@
       <mapping class="com.deskind.btrade.binary.objects.ProfitTableEntry"/>
       <mapping class="com.deskind.btrade.entities.Signal"/>
       <mapping class="com.deskind.btrade.entities.LoginMessage"/>
+      <mapping class="com.deskind.btrade.entities.ProposalResponceLog"/>
       
    </session-factory>
 </hibernate-configuration>

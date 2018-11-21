@@ -59,31 +59,26 @@ public class HibernateUtil {
     }
 
 	public static String addTsToTrader(String token, TradingSystem ts) {
+		String answer = "fail";
         
         Session session = HibernateUtil.getSession();
         Transaction transaction = session.beginTransaction();
         Query traderQuery = session.createQuery("from trader where token = :token");
         traderQuery.setParameter("token", token);
         
-        //ts adding 
-        Trader t = (Trader)traderQuery.uniqueResult();
-        if(t != null){
-            //save new ts instance
-            session.save(ts);
-            t.tsList.add(ts);
-            session.saveOrUpdate(t);
-        }else{
-        	//clean up
-            transaction.commit();
-            session.close();
-            return "fail";
+        //Add trading system to trader
+        Trader trader = (Trader)traderQuery.uniqueResult();
+        if(trader != null){
+            trader.tsList.add(ts);
+            session.saveOrUpdate(trader);
+            answer = "success";
         }
         
         //clean up
         transaction.commit();
         session.close();
         
-        return "success";
+        return answer;
     }
 
     public static String addNewTs(String name) {
@@ -207,6 +202,16 @@ public class HibernateUtil {
 		
 		transaction.commit();
 		session.close();
+	}
+
+	public static void updateTraderLogs(Trader trader) {
+		Session session = getSession();
+        Transaction t = session.beginTransaction();
+        
+        session.saveOrUpdate(trader);
+        
+        t.commit();
+    	session.close();
 	}
 }
 

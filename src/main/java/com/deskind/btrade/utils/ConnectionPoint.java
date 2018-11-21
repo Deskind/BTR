@@ -15,12 +15,14 @@ import javax.websocket.Session;
 import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.binary.objects.Error;
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
+import com.deskind.btrade.binary.objects.Proposal;
 import com.deskind.btrade.binary.passthrough.PassthroughTsName;
 import com.deskind.btrade.binary.requests.BuyRequest;
 import com.deskind.btrade.binary.responses.BuyResponse;
 import com.deskind.btrade.binary.responses.ProfitTableResponse;
 import com.deskind.btrade.binary.responses.ProposalResponse;
 import com.deskind.btrade.entities.LoginMessage;
+import com.deskind.btrade.entities.ProposalResponceLog;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
 import com.google.gson.Gson;
@@ -133,13 +135,7 @@ public class ConnectionPoint{
 				
 				HibernateUtil.saveContract(entry);
 				
-				int beforeDelete = contracts.size();
-								
 				trader.removeFromContracts(contractId);
-				
-				int afterDelete = contracts.size();
-				
-				System.out.println("Trader > " + trader.getName() + " map size before > " + beforeDelete + " and after " + afterDelete);
 			}
 		}
 		
@@ -208,10 +204,33 @@ public class ConnectionPoint{
 		
 		Error error = proposalResponse.getError();
 		
-		//error check
-		if(isThereErrorInResponse(error, "Price proposal answer ")) return;
+		TradingSystem ts = trader.getTsByName(proposalResponse.getPassthroughTsName().getTsName());
 		
 		float payout = calculatePayout(proposalResponse);
+		
+		//set up 'ProposalResponceLog' object
+		ProposalResponceLog log = new ProposalResponceLog(new Date(),
+				payout, 
+				proposalResponse.getEcho_req().getAmount(),
+				proposalResponse.getEcho_req().getContract_type(),
+				proposalResponse.getEcho_req().getDuration(),
+				proposalResponse.getEcho_req().getDuration_unit(),
+				proposalResponse.getPassthroughTsName().getTsName(),
+				proposalResponse.getEcho_req().getSymbol());
+		
+		//error check
+		if(error != null) {
+			
+			//log error fields
+			log.setErrorCode(error.getCode());
+			log.setErrorMessage(error.getMessage());
+			
+			//save log with error
+			ts.addProposalLog(log);
+			
+			//return point
+			return;
+		}
 		
 		//if payout value is sufficient
 		if(payout > ManagerServlet.getPayout()) {
@@ -229,9 +248,10 @@ public class ConnectionPoint{
 					e.printStackTrace();
 				}
 			}
-		}else {
-			System.out.println("Payout is too low");
 		}
+		
+		//add log record to trading system
+		ts.addProposalLog(log);
 		return;
 	}
 	
@@ -276,10 +296,20 @@ public class ConnectionPoint{
 	 * @return
 	 */
 	private static float calculatePayout(ProposalResponse proposalResponse) {
-		float askPrice = Float.valueOf(proposalResponse.getProposal().getAsk_price());
-		float payout = Float.valueOf(proposalResponse.getProposal().getPayout());
+		//getting 'Proposal' object
+		Proposal proposal = proposalResponse.getProposal();
 		
-		return payout*100/(askPrice*2);
+		float askPrice = 0;
+		float payout = 0;
+		
+		if(proposal != null) {
+			askPrice = Float.valueOf(proposal.getAsk_price());
+			payout = Float.valueOf(proposal.getPayout());
+			
+			return (payout * 100 / askPrice) - 100;
+		}else {
+			return 0;
+		}
 	}
 	
 	public static List<String> extractDates(String source){

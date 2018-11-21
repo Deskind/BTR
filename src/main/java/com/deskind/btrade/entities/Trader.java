@@ -25,6 +25,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 
 import com.deskind.btrade.binary.objects.ProfitTableEntry;
+import com.deskind.btrade.binary.responses.ProposalResponse;
 import com.deskind.btrade.dto.TraderDTO;
 import com.deskind.btrade.enums.SignalStatus;
 import com.deskind.btrade.utils.ContractDetails;
@@ -51,7 +52,6 @@ public class Trader implements Comparable<Trader>{
     @OneToMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
     @JoinColumn(name="trader_id")
     private List<Signal> receivedSignals;
-    
     
     //TRANSIENT FIELDS
     @Transient
@@ -145,8 +145,8 @@ public class Trader implements Comparable<Trader>{
 	public synchronized void removeFromContracts(String contractId) {
 		contracts.remove(contractId);
 	}
-
-	//GETERS
+	
+	//GETERS & SETTERS
 
 	public List<Signal> getReceivedSignals() {
 		return receivedSignals;
@@ -185,6 +185,8 @@ public class Trader implements Comparable<Trader>{
         return balance;
     }
     
+    
+    
     public HashMap<String, ContractDetails> getContracts() {
 		return contracts;
 	}
@@ -193,10 +195,5 @@ public class Trader implements Comparable<Trader>{
 		return failedToBuy;
 	}
 
-	public void setFailedToBuy(List<ProfitTableEntry> failedToBuy) {
-		this.failedToBuy = failedToBuy;
-	}
-
-    
     
 }

@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.logging.Level;
 
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 
 import com.deskind.btrade.ManagerServlet;
@@ -18,6 +20,8 @@ import com.deskind.btrade.enums.SignalStatus;
 import com.google.gson.Gson;
 
 public class SignalsConsumer extends Thread{
+	private int DELAY_BETWEAN_SIGNALS = 300;
+	
 	private String CONTRACT_BASIS = "stake";
 	private String CURRENCY = "USD";
 	
@@ -40,7 +44,11 @@ public class SignalsConsumer extends Thread{
 
 			try {
 				//getting signal object from queue
+				//at this point thread waiting a signal if queue is empty
 				Signal signal = signals.take();
+				
+				//log to console
+				System.out.println(signal.toString());
 				
 				//getting trading system name
 				String tradingSystemName = signal.getTsName();
@@ -67,13 +75,32 @@ public class SignalsConsumer extends Thread{
 
 							if(session != null && session.isOpen()) {
 						    	try {
-									session.getBasicRemote().sendText(new Gson().toJson(proposalRequest));
-									//saving received signal
-									trader.addReceivedSignal(signal, SignalStatus.RECEIVED);
+						    		//string to send
+						    		String requestString = new Gson().toJson(proposalRequest);
+						    		
+						    		//sending...
+									session.getBasicRemote().sendText(requestString);
+									
+									//saving 'RECEIVED' signal
+									//creating signal 'clone'
+									Signal s = new Signal(signal.getDate(),
+											signal.getType(),
+											signal.getDuration(),
+											signal.getDurationUnit(),
+											signal.getSymbol(),
+											signal.getTsName());
+									
+									trader.addReceivedSignal(s, SignalStatus.RECEIVED);
 								} catch (IOException e) {
 									e.printStackTrace();
+								} catch (IllegalStateException e) {
+									try {
+										session.close(new CloseReason(CloseCodes.CLOSED_ABNORMALLY, "Text_full_writing error"));
+									} catch (IOException e1) {
+										e1.printStackTrace();
+									}
 								}
-					    	}else {//we have 'missed' signal. Save it
+					    	}else {//we have 'MISSED' signal. Save it
 					    		trader.addReceivedSignal(signal, SignalStatus.MISSED);
 					    	}
 						}
@@ -81,10 +108,10 @@ public class SignalsConsumer extends Thread{
 					
 				}
 				
-				sleep(400);
-			} catch (InterruptedException e) {
-				ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer was interrupted (trading process was stopped)...");
-			}
+				sleep(DELAY_BETWEAN_SIGNALS);
+				} catch (InterruptedException e) {
+					ManagerServlet.getLogger().log(Level.INFO, "Thread signals consumer was interrupted (trading process was stopped)...");
+				}
 			
 			
 		}

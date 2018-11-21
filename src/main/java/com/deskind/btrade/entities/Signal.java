@@ -14,6 +14,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import com.deskind.btrade.enums.SignalStatus;
+import com.deskind.btrade.utils.DateUtil;
 
 @Entity
 @Table(name="received_signals")
@@ -55,11 +56,13 @@ public class Signal {
 	
 	@Override
 	public String toString() {
-		return String.format("Signal => type: %s "
-									+ "duration: %s"
-									+ "duration_unit: %s"
-									+ "symbol: %s"
-									+ "ts_name %s", type, duration, durationUnit, symbol, tsName);
+		return String.format("Signal => Date: %s"
+									+ " Type => %s "
+									+ " Duration => %s"
+									+ " Duration_unit => %s"
+									+ " Symbol => %s"
+									+ " Ts_name => %s",
+									DateUtil.getGMTDate(), type, duration, durationUnit, symbol, tsName);
 	}
 	
 	
