@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimerTask;
 
 import javax.websocket.Session;
 
@@ -16,8 +17,7 @@ import com.deskind.btrade.utils.ContractDetails;
 import com.deskind.btrade.utils.HibernateUtil;
 import com.google.gson.Gson;
 
-public class ContractsResultsSaver extends Thread{
-	private static final int SLEEP_TIME = 5555;
+public class ContractsResultsSaver extends TimerTask{
 	private static final int TIME_OFFSET = 10;
 	private List<Trader> traders;
 
@@ -28,7 +28,6 @@ public class ContractsResultsSaver extends Thread{
 
 	@Override
 	public void run() {
-		while(ManagerServlet.isWorking()) {
 			for(Trader trader : traders) {
 				String name = trader.getName();
 				
@@ -62,9 +61,6 @@ public class ContractsResultsSaver extends Thread{
 							//only one contract will be processed 
 							break;
 						}
-							
-						
-						
 					}
 				}
 				
@@ -77,12 +73,5 @@ public class ContractsResultsSaver extends Thread{
 				//clear failed to buy contracts
 				failedToBuy.clear();
 			}
-			
-			try {
-				sleep(SLEEP_TIME);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 }

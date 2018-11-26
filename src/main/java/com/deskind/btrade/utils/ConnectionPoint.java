@@ -54,6 +54,9 @@ public class ConnectionPoint{
 	public void connectionClose(CloseReason reason) {
 		List<LoginMessage> logins = tradingSystem.getLogins();
 		
+		//RETURN point
+		if(logins.isEmpty()) return;
+		
 		//last message
 		LoginMessage message = logins.get(logins.size()-1);
 		

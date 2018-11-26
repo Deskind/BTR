@@ -47,8 +47,10 @@ public class SignalsConsumer extends Thread{
 				//at this point thread waiting a signal if queue is empty
 				Signal signal = signals.take();
 				
-				//log to console
-				System.out.println(signal.toString());
+				//log to file
+				String sgn = signal.toString();
+				ManagerServlet.getLogger().log(Level.INFO, sgn);
+				System.out.println(sgn);
 				
 				//getting trading system name
 				String tradingSystemName = signal.getTsName();

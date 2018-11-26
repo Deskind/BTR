@@ -2,6 +2,8 @@ package com.deskind.btrade;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 
@@ -35,6 +37,12 @@ import logs.MyFormatter;
 @WebServlet(name = "ManagerServlet", urlPatterns = { "/manager" })
 public class ManagerServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	
+	private final int STAY_ALIVE_DELAY = 55555;
+	private static final int CONTRACTS_SAVER_DELAY = 5555;
+
+	private Timer stayAliveTimer;
+	private Timer contractsResultsSaverTimer;
 	
 	private List<Trader> traders;
 	
@@ -156,17 +164,31 @@ public class ManagerServlet extends HttpServlet {
 	}
 
 	private void clearLogins(Session session) {
+		LoginMessage loginMessage = null;
+		List<TradingSystem> tsList = null;
+		List<LoginMessage> logins = null;
+		
 		for(Trader trader : traders) {
-			List<TradingSystem> tsList = trader.getTsList();
+			tsList = trader.getTsList();
 			
 			for(TradingSystem ts: tsList) {
-				List<LoginMessage> logins = ts.getLogins();
+				logins = ts.getLogins();
 				
-				for(LoginMessage loginMessage: logins) {
-					session.delete(loginMessage);
+				if(!logins.isEmpty()) {
+					for(int i = 0; i < logins.size(); i++) {
+						loginMessage = logins.get(i);
+						
+						//prevent deleting entries about currently open sessions
+						if(loginMessage.getLogout() != null) { 
+							
+							//delete entity
+							session.delete(loginMessage);
+							
+							//remove from collection
+							logins.remove(i);
+						}
+					}
 				}
-				
-				logins.clear();
 				
 				session.saveOrUpdate(trader);
 			}
@@ -212,6 +234,12 @@ public class ManagerServlet extends HttpServlet {
 		//clear queue
 		SignalManager.getSignalsQueue().clear();
 		
+		//cancel timers
+		stayAliveTimer.cancel();
+		stayAliveTimer.purge();
+		contractsResultsSaverTimer.cancel();
+		contractsResultsSaverTimer.purge();
+		
 		return "Trading process stopped ...";
 	}
 
@@ -246,6 +274,7 @@ public class ManagerServlet extends HttpServlet {
 		pointsInitializer.setName("Points Initializer");
 		pointsInitializer.start();
 		
+		//time to set up connection
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
@@ -253,14 +282,12 @@ public class ManagerServlet extends HttpServlet {
 		}
 		
 		//run 'stay alive' thread
-		Thread stayAliveThread = new StayAlive(traders);
-		stayAliveThread.setName("+++StayAlive");
-		stayAliveThread.start();
+		stayAliveTimer = new Timer();
+		stayAliveTimer.schedule(new StayAlive(traders), 22222, STAY_ALIVE_DELAY);
 		
 		//run 'ContractsResultsSaver' thread
-		Thread contractsResultsSaverThread = new ContractsResultsSaver(traders);
-		contractsResultsSaverThread.setName("+++ContractsResultsSaverThread");
-		contractsResultsSaverThread.start();
+		contractsResultsSaverTimer = new Timer();
+		contractsResultsSaverTimer.schedule(new ContractsResultsSaver(traders), 33333, CONTRACTS_SAVER_DELAY);
 		
 		return "Trading process started ...";
 	}
@@ -272,7 +299,7 @@ public class ManagerServlet extends HttpServlet {
 		logger = Logger.getLogger(ManagerServlet.class.getName());
 
 		try {
-			handler = new FileHandler("c:\\btr_logs\\ManagerLogMessages.txt", false);
+			handler = new FileHandler("c:\\btr_logs\\ManagerLogMessages.txt", true);
 			logger.addHandler(handler);
 			handler.setFormatter(new MyFormatter());
 		} catch (SecurityException e1) {
@@ -285,7 +312,15 @@ public class ManagerServlet extends HttpServlet {
 
 	@Override
 	public void destroy() {
+		//close file handler
 		handler.close();
+		
+		//cancel timers
+		stayAliveTimer.cancel();
+		stayAliveTimer.purge();
+		
+		contractsResultsSaverTimer.cancel();
+		contractsResultsSaverTimer.purge();
 	}
 
 

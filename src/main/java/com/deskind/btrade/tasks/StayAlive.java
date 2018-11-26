@@ -2,13 +2,15 @@ package com.deskind.btrade.tasks;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.TimerTask;
 
-import com.deskind.btrade.ManagerServlet;
 import com.deskind.btrade.entities.Trader;
 import com.deskind.btrade.entities.TradingSystem;
+import com.deskind.btrade.utils.HibernateUtil;
 
-public class StayAlive extends Thread {
-	private final int SLEEP_TIME = 55555;
+public class StayAlive extends TimerTask {
+	private static int DB_TOUCH_INTERVAL = 30;
+	private static int dbTouchCounter = 0;
 	
 	private List<Trader> traders;
 
@@ -20,7 +22,6 @@ public class StayAlive extends Thread {
 	public void run() {
 
 		// do while manager servlet works
-		while (ManagerServlet.isWorking()) {
 			for (Trader trader : traders) {
 				List<TradingSystem> systems = trader.getTsList();
 				
@@ -42,14 +43,18 @@ public class StayAlive extends Thread {
 						t.start();
 					}
 				}
+			}
+			
+			//touch counter
+			dbTouchCounter++;
+			
+			if(dbTouchCounter == DB_TOUCH_INTERVAL) {
+				//reset counter
+				dbTouchCounter = 0;
 				
+				//get all traders from database for just 'waking up' data base (to prevent 'wait_timeout')
+				HibernateUtil.getAllTraders();
 			}
-			try {
-				sleep(SLEEP_TIME);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 }
